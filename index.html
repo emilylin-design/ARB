@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARB Prototype</title>
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <style>
+    body {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 32px;
+      font-family: var(--font-sans);
+      color: var(--color-neutral);
+    }
+    h1 {
+      font-size: var(--font-size-3xl);
+      font-weight: var(--font-weight-semibold);
+      margin: 0 0 8px;
+      color: var(--color-primary);
+    }
+    .subtitle {
+      font-size: var(--font-size-base);
+      color: var(--color-neutral-700);
+      margin: 0 0 48px;
+    }
+    .group {
+      margin-bottom: 40px;
+    }
+    .group-label {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-neutral-700);
+      margin: 0 0 12px;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      border-top: 1px solid var(--color-neutral-300);
+    }
+    li {
+      border-bottom: 1px solid var(--color-neutral-300);
+    }
+    a {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 4px;
+      color: var(--color-neutral);
+      text-decoration: none;
+      font-size: var(--font-size-base);
+      transition: color 0.15s ease;
+    }
+    a:hover {
+      color: var(--color-primary);
+    }
+    .step {
+      font-size: var(--font-size-sm);
+      color: var(--color-neutral-700);
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <h1>ARB Prototype</h1>
+  <p class="subtitle">Architecture Review Board — request flow and approval prototype.</p>
+
+  <div class="group">
+    <p class="group-label">Requestor flow</p>
+    <ul>
+      <li><a href="prototype-arb/ARB_1_Service_Catalog.html"><span>Service Catalog</span><span class="step">01</span></a></li>
+      <li><a href="prototype-arb/ARB_2_Submit_Request_1.html"><span>Submit Request — Step 1</span><span class="step">02</span></a></li>
+      <li><a href="prototype-arb/ARB_3_Submit_Request_2.html"><span>Submit Request — Step 2</span><span class="step">03</span></a></li>
+      <li><a href="prototype-arb/ARB_4_Submit_Request_3.html"><span>Submit Request — Step 3</span><span class="step">04</span></a></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <p class="group-label">ARB reviewer flow</p>
+    <ul>
+      <li><a href="prototype-arb/ARB_5_ARB_Home.html"><span>ARB Home</span><span class="step">05</span></a></li>
+      <li><a href="prototype-arb/ARB_6_Requests.html"><span>Requests</span><span class="step">06</span></a></li>
+      <li><a href="prototype-arb/ARB_7_Request_Details.html"><span>Request Details</span><span class="step">07</span></a></li>
+      <li><a href="prototype-arb/ARB_8_After_Approve.html"><span>After Approve</span><span class="step">08</span></a></li>
+    </ul>
+  </div>
+
+  <div class="group">
+    <p class="group-label">Workspace</p>
+    <ul>
+      <li><a href="prototype-arb/ARB_10_Home.html"><span>Home</span><span class="step">10</span></a></li>
+      <li><a href="prototype-arb/ARB_20_Todo.html"><span>To do</span><span class="step">20</span></a></li>
+      <li><a href="prototype-arb/ARB_30_Previous_Requests.html"><span>Previous Requests</span><span class="step">30</span></a></li>
+    </ul>
+  </div>
+</body>
+</html>
