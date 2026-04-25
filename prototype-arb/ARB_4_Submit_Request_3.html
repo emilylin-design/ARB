@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Review Analysis — EA Workspace</title>
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/floating-panel.css">
+  <link rel="stylesheet" href="../assets/css/convo-pane.css">
+  <script src="../assets/js/icons.js"></script>
+  <script src="../assets/js/sidenav.js"></script>
+  <script src="../assets/js/interactions.js" defer></script>
+  <style>
+
+    /* ============================================================
+       Canvas
+    ============================================================ */
+    html, body {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: #cde5ef;
+    }
+
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.10) transparent;
+    }
+    html::-webkit-scrollbar { width: 4px; }
+    html::-webkit-scrollbar-track { background: transparent; }
+    html::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.10); border-radius: 9999px; }
+    html::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+
+    .app {
+      display: flex;
+      align-items: flex-start;
+      width: 100%;
+      min-height: calc(100vh - 40px);
+      min-width: 1280px;
+      background: #cde5ef;
+    }
+
+    /* ============================================================
+       Top Navbar (local component — ARB_2/3/4)
+    ============================================================ */
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      padding: 0 var(--space-6);
+      background: #BBDAE5;
+    }
+    .topnav__left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .topnav__divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-default);
+      margin: 0 var(--space-1);
+    }
+    .topnav__section-name {
+      font-size: 15px;
+      font-weight: var(--font-weight-normal);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .topnav__right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+    }
+    .topnav__link {
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color var(--transition-fast);
+      white-space: nowrap;
+    }
+    .topnav__link:hover { color: var(--text-primary); }
+    .topnav__back {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color var(--transition-fast);
+    }
+    .topnav__back:hover { color: var(--text-primary); }
+    .topnav__back [data-icon] { width: 14px; height: 14px; }
+
+    .topnav__crumb-sep {
+      display: inline-flex;
+      align-items: center;
+      color: var(--text-secondary);
+    }
+    .topnav__crumb-sep [data-icon],
+    .topnav__crumb-sep {
+      width: 14px;
+      height: 14px;
+    }
+    .topnav__crumb--current {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: var(--font-weight-medium, 500);
+      white-space: nowrap;
+    }
+
+    /* ============================================================
+       Side Navigation
+    ============================================================ */
+    .sidenav {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--bg-primary, white);
+      border-right: 1px solid var(--color-neutral-300, #e3e2df);
+      width: 288px;
+      transition: width var(--transition-fast);
+      overflow: hidden;
+    }
+    .sidenav--collapsed { width: 52px; }
+
+    .sidenav__top {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sidenav__top::-webkit-scrollbar { display: none; }
+
+    .sidenav__header {
+      display: flex;
+      align-items: center;
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .sidenav__menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      flex-shrink: 0;
+      margin: 6px;
+      transition: background-color var(--transition-fast);
+    }
+    .sidenav__menu-btn:hover { background-color: var(--bg-secondary); }
+    .sidenav__menu-btn [data-icon] { width: 20px; height: 20px; }
+
+    .sidenav__logo {
+      position: absolute;
+      left: 52px;
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 8px 6px;
+      white-space: nowrap;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__logo { opacity: 0; pointer-events: none; }
+
+    .sidenav__logo-text {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .sidenav__nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 6px;
+    }
+
+    .sidenav__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      padding: 0 10px;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      white-space: nowrap;
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+    }
+    .sidenav__item:hover:not(.sidenav__item--active) { background-color: var(--color-neutral-200, #edece9); }
+    .sidenav__item--active { background-color: var(--color-neutral-400, #c2c1be); border-radius: 9999px; }
+    .sidenav__item [data-icon] { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .sidenav__item__label {
+      flex: 1;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__item__label { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__divider {
+      height: 1px;
+      background-color: var(--border-subtle, #e3e2df);
+      margin: 0 6px;
+    }
+
+    .sidenav__bottom { display: flex; flex-direction: column; flex-shrink: 0; }
+
+    .sidenav__profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 56px;
+      padding: 6px 8px;
+    }
+
+    .sidenav__avatar { position: relative; width: 32px; height: 32px; flex-shrink: 0; }
+    .sidenav__avatar-img {
+      width: 32px; height: 32px; border-radius: 9999px;
+      background-color: var(--color-neutral-800, #343331);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-sans); font-size: 12px;
+      font-weight: var(--font-weight-semibold); color: white;
+    }
+    .sidenav__avatar-status {
+      position: absolute; bottom: 0; right: 0; width: 8px; height: 8px;
+      border-radius: 9999px; background-color: #52cb3d; border: 1.5px solid white;
+    }
+
+    .sidenav__profile-name {
+      flex: 1; font-family: var(--font-sans); font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary); white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; opacity: 1; transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__profile-name { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__profile-more {
+      display: flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: var(--radius-md, 6px);
+      border: none; background: transparent; color: var(--text-tertiary);
+      cursor: pointer; flex-shrink: 0;
+      transition: background-color var(--transition-fast), opacity var(--transition-fast);
+    }
+    .sidenav__profile-more:hover { background-color: var(--bg-secondary); }
+    .sidenav--collapsed .sidenav__profile-more { opacity: 0; }
+    .sidenav__profile-more [data-icon] { width: 14px; height: 14px; }
+
+    .sidenav--dark { background-color: transparent; border-right-color: transparent; }
+    .sidenav--dark .sidenav__item--active { background-color: rgba(0, 0, 0, 0.1); }
+    .sidenav--dark .sidenav__item { color: var(--text-primary); }
+    .sidenav--dark .sidenav__item:hover:not(.sidenav__item--active) { background-color: rgba(0, 0, 0, 0.06); }
+
+    .app__sidebar { flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+
+    /* ============================================================
+       Badge
+    ============================================================ */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px;
+      font-family: var(--font-sans); font-weight: var(--font-weight-normal);
+      white-space: nowrap; vertical-align: middle; height: 20px; padding: 0 8px;
+      font-size: 11px; border: 1px solid transparent;
+    }
+    .badge [data-icon] { flex-shrink: 0; width: 9px; height: 9px; }
+    .badge--neutral     { background-color: #343331; color: white; }
+    .badge--success     { background-color: #00834f; color: white; }
+    .badge--warning     { background-color: #8d6e00; color: white; }
+    .badge--info        { background-color: #2a6edc; color: white; }
+
+    /* ============================================================
+       In-bubble attachment thumbnail (synced from ARB_Submit Request_1)
+    ============================================================ */
+    .arb-chat-card__thumbnail {
+      display: none;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 260px;
+      box-sizing: border-box;
+    }
+    .arb-chat-card__thumbnail--visible { display: flex; }
+    .arb-chat-card__thumb-img {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+    .arb-chat-card__thumb-img svg { width: 100%; height: 100%; }
+    .arb-chat-card__thumb-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+    .arb-chat-card__thumb-name {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+    }
+    .arb-chat-card__thumb-meta {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+    }
+    .arb-chat-card__thumbnail--sm {
+      width: 210px;
+      padding: var(--space-2) var(--space-3);
+    }
+    .arb-chat-card__thumbnail--sm .arb-chat-card__thumb-img {
+      width: 36px;
+      height: 36px;
+    }
+    .arb-chat-card__thumbnail--sm .arb-chat-card__thumb-name {
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-xs);
+    }
+    .arb-chat-card__thumbnail--sm .arb-chat-card__thumb-meta {
+      font-size: 11px;
+    }
+
+    /* ============================================================
+       Floating Panel — loading overlay
+    ============================================================ */
+    .floating-panel {
+      position: relative;
+    }
+
+    /* Loading overlay (covers floating panel) */
+    .panel-loading-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(6px);
+      border-radius: 24px;
+      transition: opacity 0.4s ease;
+    }
+    .panel-loading-overlay--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .panel-loading-overlay__inner {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-4);
+    }
+
+    .panel-loading-text {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-secondary);
+    }
+
+    /* AI Loader */
+    .ai-loader { position: relative; width: 80px; height: 80px; }
+    .ai-loader__ring { position: absolute; inset: 0; animation: ai-ring-spin 2s linear infinite; }
+    .ai-loader__ring svg { width: 100%; height: 100%; display: block; }
+    .ai-loader__center { position: absolute; inset: 12px; background: transparent; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .ai-loader__sparkles { position: relative; width: 34px; height: 34px; }
+    .ai-loader__sparkle { position: absolute; display: block; }
+    .ai-loader__sparkle svg { width: 100%; height: 100%; display: block; }
+    .ai-loader__sparkle--main { width: 30px; height: 30px; bottom: -2px; left: 50%; transform: translateX(-50%); color: #312e81; animation: sparkle-breathe 2s ease-in-out infinite; --tx: -50%; }
+    .ai-loader__sparkle--tl { width: 11px; height: 11px; top: 1px; left: -1px; color: #3730a3; animation: sparkle-breathe 2s ease-in-out infinite 0.4s; }
+    .ai-loader__sparkle--tr { width: 14px; height: 14px; top: -2px; right: -1px; color: #3730a3; animation: sparkle-breathe 2s ease-in-out infinite 0.8s; }
+    @keyframes ai-ring-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes sparkle-breathe { 0%, 100% { opacity: 0.55; transform: translateX(var(--tx, 0)) scale(0.88); } 50% { opacity: 1; transform: translateX(var(--tx, 0)) scale(1.05); } }
+
+    /* ============================================================
+       Panel Content
+    ============================================================ */
+    .panel-content {
+      padding: var(--space-6) 100px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+      animation: panel-fade-in 300ms ease;
+    }
+
+    @keyframes panel-fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+       Step 2 — ARB Form
+    ============================================================ */
+    .arb-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+    }
+
+    .arb-form .input-fieldset,
+    .arb-form .textarea-fieldset { width: 100%; }
+
+    /* Lighter form fields to match mockup context */
+    .arb-form .field-legend__label { color: #8a8986; font-weight: 400; }
+    .arb-form .input-field { border-color: #8a8986; }
+    .arb-form .textarea { border-color: #8a8986; }
+    .arb-form .select { border-color: #8a8986; }
+    .arb-form .input-field--error,
+    .arb-form .textarea--error { border-color: var(--color-error); }
+
+    /* Form header */
+    .arb-form__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .arb-form__id {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+    }
+    .arb-form__meta {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+      margin-top: 6px;
+    }
+    .arb-form__actions { display: flex; gap: var(--space-2); }
+
+    /* Two-column row */
+    .arb-field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+
+    /* Section subtitle inside cards */
+    .arb-form__section-title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Info link */
+    .arb-info-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--color-link, #378ADD);
+      text-decoration: none;
+      margin-top: var(--space-2);
+    }
+    .arb-info-link:hover { text-decoration: underline; }
+    .arb-info-link [data-icon] { width: 14px; height: 14px; }
+
+    /* Diagram upload row */
+    .arb-diagram {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+    .arb-diagram__preview {
+      width: 48px;
+      height: 40px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .arb-diagram__info { flex: 1; min-width: 0; }
+    .arb-diagram__name {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .arb-diagram__meta { font-family: var(--font-sans); font-size: 11px; color: var(--text-tertiary); }
+
+    /* Suggestion pills */
+    .arb-suggestion-pills { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .arb-suggestion-pill {
+      display: inline-flex; align-items: center; gap: var(--space-2); height: 32px;
+      padding: 0 var(--space-3); background: var(--bg-primary); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full); font-family: var(--font-sans); font-size: var(--font-size-sm);
+      color: var(--text-secondary); cursor: pointer; transition: border-color var(--transition-fast), color var(--transition-fast);
+    }
+    .arb-suggestion-pill:hover { border-color: var(--border-default); color: var(--text-primary); }
+    .arb-suggestion-pill [data-icon] { width: 14px; height: 14px; color: var(--color-primary); }
+
+    /* Attachment chip */
+    .arb-attachment-chip {
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-1) var(--space-3); background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle); border-radius: var(--radius-full);
+      font-family: var(--font-sans); font-size: var(--font-size-xs); color: var(--text-secondary);
+    }
+    .arb-attachment-chip [data-icon] { width: 12px; height: 12px; }
+
+    /* Convo step groups */
+    .convo-step-group { display: none; flex-direction: column; gap: var(--space-4); }
+    .convo-step-group--visible { display: flex; }
+
+    /* Submit confirmation modal */
+    .submit-confirm__hero {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      background: #f0faf2;
+      border: 1px solid #cdead1;
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+    }
+    .submit-confirm__hero [data-icon] {
+      width: 28px; height: 28px; color: #1a6b3c; flex-shrink: 0;
+    }
+    .submit-confirm__hero-title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .submit-confirm__hero-sub {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-secondary);
+      margin: 2px 0 0;
+    }
+    .submit-confirm__hero-sub a {
+      color: var(--color-link, #378ADD);
+      text-decoration: none;
+      font-weight: var(--font-weight-semibold);
+    }
+    .submit-confirm__hero-sub a:hover { text-decoration: underline; }
+
+    .submit-confirm__grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      row-gap: var(--space-3);
+      column-gap: var(--space-4);
+      align-items: center;
+      padding: var(--space-3) 0;
+    }
+    .submit-confirm__label {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .submit-confirm__value {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-primary);
+    }
+    .submit-confirm__chips { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+    .submit-confirm__divider {
+      height: 1px; background: var(--border-subtle); margin: var(--space-3) 0;
+    }
+
+    .submit-confirm__next-title {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 var(--space-2);
+    }
+    .submit-confirm__next-list {
+      margin: 0; padding-left: var(--space-5); list-style: disc;
+      display: flex; flex-direction: column; gap: var(--space-2);
+    }
+    .submit-confirm__next-list li {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-primary);
+    }
+
+    /* ============================================================
+       Modal (AI agent evaluation)
+    ============================================================ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.is-open { display: flex; }
+
+    .modal {
+      background: var(--bg-primary);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-xl);
+      width: 780px;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-5) var(--space-6) var(--space-3);
+    }
+    .modal__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .modal__close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: var(--radius-lg);
+      background: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+    .modal__close:hover { background-color: var(--bg-secondary); }
+    .modal__close [data-icon] { width: 16px; height: 16px; }
+
+    .modal__body {
+      padding: 0 var(--space-6) var(--space-4);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .modal__footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-6) var(--space-5);
+    }
+    .modal__btn {
+      height: 36px;
+      padding: 0 16px;
+      border-radius: var(--radius-field);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      border: 1px solid var(--border-default);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color var(--transition-fast);
+    }
+    .modal__btn:hover { background-color: var(--bg-secondary); }
+
+    /* ============================================================
+       AI agent evaluation (synced from ARB_Request Details)
+    ============================================================ */
+    .eval-dims {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .eval-dim {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      align-items: start;
+      gap: var(--space-3);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .eval-dim:last-child { border-bottom: none; }
+    .eval-dim__status { justify-self: start; margin-top: 2px; }
+    .eval-dim__body {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+    .eval-dim__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      margin: 0;
+      line-height: var(--line-height-snug);
+    }
+    .eval-dim__desc {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin: 0;
+    }
+    .eval-dim__desc--fail { color: #a50e13; }
+    .eval-dim__status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      white-space: nowrap;
+      flex-shrink: 0;
+      border-radius: 9999px;
+      padding: 2px 8px;
+    }
+    .eval-dim__status [data-icon] { width: 11px; height: 11px; }
+    .eval-dim__status--pass { background: #d1f0df; color: #1a6b3c; }
+    .eval-dim__status--warn { background: #fef3c7; color: #8a5b00; }
+    .eval-dim__status--fail { background: #fee2e2; color: #a50e13; }
+
+    /* Typing dots animation (in-chat AI typing indicator) */
+    .typing-dots {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+      padding: 2px 0;
+    }
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-tertiary, #6b7280);
+      animation: typing-blink 1.4s infinite;
+      opacity: 0.2;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-blink {
+      0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
+      30%           { opacity: 1;   transform: translateY(-2px); }
+    }
+
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav__left">
+    <a class="topnav__back" href="ARB_1_Service Catalog.html">Service Catalog</a>
+    <span class="topnav__crumb-sep" data-icon="chevron-right"></span>
+    <span class="topnav__crumb--current">Request Architecture Review</span>
+  </div>
+  <div class="topnav__right">
+    <a class="topnav__link" href="#">My requests</a>
+  </div>
+</nav>
+
+<div class="app">
+
+  <!-- Conversation Pane (renders open, no slide animation) -->
+  <aside class="convo-pane convo-pane--open" id="convo-pane" aria-label="Conversation" style="transition: none;">
+    <div class="convo-pane__inner">
+
+      <div class="convo-pane__titlebar">
+        <span class="convo-pane__titlebar-label">Now Assist</span>
+        <div class="convo-pane__titlebar-actions">
+          <button class="convo-pane__titlebar-btn" aria-label="Expand">
+            <span data-icon="expand"></span>
+          </button>
+          <button class="convo-pane__titlebar-btn" aria-label="Close">
+            <span data-icon="close"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="convo-pane__body" id="convo-body">
+
+        <span class="convo-sparkle"><span data-icon="ai-sparkle"></span></span>
+        <p class="convo-msg__greeting">Architecture Review Analysis</p>
+
+        <!-- User's original message -->
+        <div class="bubble-wrap">
+          <div class="bubble">
+            <p class="bubble__text">We're building a real-time order processing pipeline. The architecture uses Redis for message queuing, PostgreSQL for the order database, and a React frontend. Orders flow from the web app through an API gateway to the processing service, which writes directly to the database. We also have a direct connection from the analytics dashboard to the production database for reporting.</p>
+            <div class="arb-chat-card__thumbnail arb-chat-card__thumbnail--visible arb-chat-card__thumbnail--sm">
+              <div class="arb-chat-card__thumb-img">
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="48" height="48" fill="#f0f4f8"/>
+                  <rect x="16" y="4" width="16" height="8" rx="2" fill="#0e4e69" opacity="0.8"/>
+                  <rect x="4" y="20" width="14" height="8" rx="2" fill="#2a6edc" opacity="0.6"/>
+                  <rect x="30" y="20" width="14" height="8" rx="2" fill="#2a6edc" opacity="0.6"/>
+                  <rect x="10" y="36" width="12" height="8" rx="2" fill="#68e353" opacity="0.5"/>
+                  <rect x="26" y="36" width="12" height="8" rx="2" fill="#68e353" opacity="0.5"/>
+                  <line x1="24" y1="12" x2="11" y2="20" stroke="#8b97a5" stroke-width="1"/>
+                  <line x1="24" y1="12" x2="37" y2="20" stroke="#8b97a5" stroke-width="1"/>
+                  <line x1="11" y1="28" x2="16" y2="36" stroke="#8b97a5" stroke-width="1"/>
+                  <line x1="37" y1="28" x2="32" y2="36" stroke="#8b97a5" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="arb-chat-card__thumb-info">
+                <span class="arb-chat-card__thumb-name">Architecture-diagram.png</span>
+                <span class="arb-chat-card__thumb-meta">PNG &bull; 1.2 MB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 2 messages ── -->
+        <div class="convo-step-group convo-step-group--visible" id="convo-step2">
+          <div class="bubble-wrap bubble-wrap--ai">
+            <div class="bubble bubble--ai">
+              <p class="bubble__text">I've analyzed your solution description and architecture diagram. I found a few things that need attention before we proceed.</p>
+            </div>
+          </div>
+
+          <div class="convo-card">
+            <div class="convo-card__header">
+              <span class="convo-card__title">Analysis Summary</span>
+              <span class="badge badge--neutral">3 findings</span>
+            </div>
+            <div class="convo-card__goal">
+              <span class="convo-card__goal-icon"><span data-icon="bullseye-arrow"></span></span>
+              <p class="convo-card__goal-text"><strong>Goal:</strong> Pre-fill your ARB submission and identify standards conflicts before review.</p>
+            </div>
+            <p class="convo-card__activity-label">Findings</p>
+            <div class="convo-card__activity-list">
+              <div class="convo-card__activity-item">
+                <span class="convo-card__dot" style="background:#2a6edc;"></span>
+                <span><strong>TRM Match</strong> &mdash; Redis identified, but your usage pattern matches a message queue, not a cache. Did you mean Kafka or RabbitMQ?</span>
+              </div>
+              <div class="convo-card__activity-item">
+                <span class="convo-card__dot" style="background:#e2161c;"></span>
+                <span><strong>Standards Conflict</strong> &mdash; Direct database connection from analytics bypasses API gateway &mdash; conflicts with Integration Standard #12</span>
+              </div>
+              <div class="convo-card__activity-item">
+                <span class="convo-card__dot" style="background:#8d6e00;"></span>
+                <span><strong>Diagram Flag</strong> &mdash; Architecture diagram shows no authentication layer between frontend and API gateway</span>
+              </div>
+            </div>
+            <div class="convo-card__footer">
+              <button class="convo-card__action-btn" disabled>
+                <span data-icon="magnifying-glass-plus"></span>
+                Reviewing details &rarr;
+              </button>
+            </div>
+          </div>
+
+          <div class="convo-actions">
+            <button class="convo-action-btn" title="Copy"><span data-icon="clipboard"></span></button>
+            <button class="convo-action-btn" title="Helpful"><span data-icon="thumbs-up"></span></button>
+            <button class="convo-action-btn" title="Not helpful"><span data-icon="thumbs-down"></span></button>
+          </div>
+
+          <div class="bubble-wrap">
+            <div class="bubble">
+              <p class="bubble__text">Review details</p>
+            </div>
+          </div>
+
+          <div class="bubble-wrap bubble-wrap--ai">
+            <div class="bubble bubble--ai">
+              <p class="bubble__text">I've opened the finding details on the right. Clarify how you'd like to proceed on each item &mdash; I'll update the submission based on your choices.</p>
+            </div>
+          </div>
+
+          <div class="bubble-wrap">
+            <div class="bubble">
+              <p class="bubble__text">Save clarifications</p>
+            </div>
+          </div>
+
+          <div class="bubble-wrap bubble-wrap--ai">
+            <div class="bubble bubble--ai">
+              <p class="bubble__text">I've prepared the ARB request form for you on the right. Please review it and let me know if you have any questions.</p>
+            </div>
+          </div>
+
+          <div class="convo-actions">
+            <button class="convo-action-btn" title="Copy"><span data-icon="clipboard"></span></button>
+            <button class="convo-action-btn" title="Helpful"><span data-icon="thumbs-up"></span></button>
+            <button class="convo-action-btn" title="Not helpful"><span data-icon="thumbs-down"></span></button>
+          </div>
+        </div>
+
+        <!-- ── Pre-submission review messages ── -->
+        <div class="convo-step-group" id="convo-step-review">
+          <div class="bubble-wrap">
+            <div class="bubble">
+              <p class="bubble__text">Pre-submission review</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /convo-pane__body -->
+
+      <div class="convo-pane__footer">
+        <div class="convo-input-card">
+          <button class="convo-input-card__add" aria-label="Attach"><span data-icon="plus"></span></button>
+          <input class="convo-input-card__placeholder" type="text" placeholder="Search or ask anything" aria-label="Search or ask anything">
+          <button class="convo-input-card__send" aria-label="Send"><span data-icon="arrow-up"></span></button>
+        </div>
+      </div>
+
+    </div><!-- /convo-pane__inner -->
+  </aside><!-- /convo-pane -->
+
+  <!-- Floating Content Panel -->
+  <div class="floating-panel" id="floating-panel">
+
+    <!-- Loading overlay (visible on load, fades out) -->
+    <div class="panel-loading-overlay" id="panel-overlay">
+      <div class="panel-loading-overlay__inner">
+        <div class="ai-loader">
+          <div class="ai-loader__ring">
+            <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="rg-panel" x1="10" y1="10" x2="70" y2="70" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#94afd0"/>
+                  <stop offset="40%" stop-color="#6366f1"/>
+                  <stop offset="100%" stop-color="#312e81"/>
+                </linearGradient>
+              </defs>
+              <circle cx="40" cy="40" r="34" stroke="url(#rg-panel)" stroke-width="8" stroke-linecap="round" stroke-dasharray="160 54" fill="none"/>
+            </svg>
+          </div>
+          <div class="ai-loader__center">
+            <div class="ai-loader__sparkles">
+              <span class="ai-loader__sparkle ai-loader__sparkle--main" data-icon="ai-sparkle"></span>
+              <span class="ai-loader__sparkle ai-loader__sparkle--tl" data-icon="ai-sparkle"></span>
+              <span class="ai-loader__sparkle ai-loader__sparkle--tr" data-icon="ai-sparkle"></span>
+            </div>
+          </div>
+        </div>
+        <span class="panel-loading-text">Generating draft ARB request&hellip;</span>
+      </div>
+    </div>
+
+    <!-- Panel header: request info + actions -->
+    <div class="floating-panel__header" style="flex-direction: column; align-items: stretch; gap: var(--space-4); padding: 24px 24px 16px;">
+      <div class="arb-form__header">
+        <div>
+          <div class="arb-form__id" id="panel-title">ARB002025318 &mdash; Real-time Order Processing Pipeline</div>
+          <div class="arb-form__meta">Last saved: 2026-04-16 10:34:12</div>
+        </div>
+        <div class="arb-form__actions">
+          <button class="btn btn-secondary" id="btn-presubmission-review"><span data-icon="ai-sparkle"></span> Pre-submission review</button>
+          <button class="btn btn-primary" id="btn-to-step3">Submit request</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="floating-panel__body">
+
+      <!-- Step 2: Form -->
+      <div id="panel-step2" class="panel-content">
+        <div class="arb-form">
+
+          <!-- Request title -->
+          <div class="input-fieldset">
+            <div class="field-legend">
+              <div class="field-legend__title">
+                <span class="field-legend__label">Request title</span>              </div>
+            </div>
+            <div class="input-field">
+              <input type="text" class="input-field__input" value="Real-time Order Processing Pipeline" readonly>
+            </div>
+          </div>
+
+          <!-- Entity type + Action -->
+          <div class="arb-field-row">
+            <div class="select-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Entity type</span>
+                </div>
+              </div>
+              <div class="select" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select__value select__value--selected">Integration</span>
+                <span data-icon="chevron-down" class="select__chevron"></span>
+                <div class="select__panel" hidden role="listbox">
+                  <div class="select__option select__option--selected" data-value="Integration">Integration <span data-icon="check"></span></div>
+                  <div class="select__option" data-value="Application">Application</div>
+                  <div class="select__option" data-value="Data">Data</div>
+                  <div class="select__option" data-value="Infrastructure">Infrastructure</div>
+                </div>
+              </div>
+            </div>
+            <div class="select-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Action</span>
+                </div>
+              </div>
+              <div class="select" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select__value select__value--selected">Build new</span>
+                <span data-icon="chevron-down" class="select__chevron"></span>
+                <div class="select__panel" hidden role="listbox">
+                  <div class="select__option select__option--selected" data-value="Build new">Build new <span data-icon="check"></span></div>
+                  <div class="select__option" data-value="Modify">Modify</div>
+                  <div class="select__option" data-value="Migrate">Migrate</div>
+                  <div class="select__option" data-value="Retire">Retire</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Solution description + Business capabilities (side-by-side) -->
+          <div class="arb-field-row">
+            <div class="textarea-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Solution description</span>
+                </div>
+              </div>
+              <textarea class="textarea" style="min-height:120px;">Real-time order processing pipeline using event-driven architecture. Orders flow from a React frontend through an API gateway to a Kafka-based processing service, with PostgreSQL for persistence and Redis for caching. Analytics connects via a read-only database replica.</textarea>
+            </div>
+            <div class="textarea-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Business capabilities supported</span>
+                </div>
+              </div>
+              <textarea class="textarea" style="min-height:120px;" readonly>Order processing, real-time analytics, event streaming, API management</textarea>
+            </div>
+          </div>
+
+          <div style="height:1px;background:var(--border-subtle);"></div>
+
+          <!-- Business justification -->
+          <div class="textarea-fieldset">
+            <div class="field-legend">
+              <div class="field-legend__title" style="justify-content: space-between;">
+                <span class="field-legend__label">Business justification</span>
+                <span class="badge badge--success-tertiary" id="ai-fix-label-justification" style="display: none; font-weight: 500;"><span data-icon="ai-sparkle"></span>AI fix</span>
+              </div>
+            </div>
+            <textarea class="textarea" style="min-height:120px;">Current batch processing introduces delays of up to 4 hours in order fulfillment, impacting responsiveness and customer satisfaction. Transitioning to real-time event streaming will reduce processing latency to under 500ms, enabling faster order handling and significantly improving key customer experience metrics such as delivery speed and reliability.</textarea>
+          </div>
+
+          <!-- Security & Data Governance section -->
+          <span class="arb-form__section-title">Security &amp; data governance</span>
+
+          <div class="arb-field-row">
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">What governance audit should be performed?</span>
+                </div>
+              </div>
+              <div class="checkbox-group">
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm" checked><span class="checkbox-text">Data classification</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm"><span class="checkbox-text">Data access control</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm"><span class="checkbox-text">Data retention and disposal</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm" checked><span class="checkbox-text">PII identification and handling</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm" checked><span class="checkbox-text">PII data encryption</span></label>
+              </div>
+            </div>
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Which security reviews are required before go-live?</span>
+                </div>
+              </div>
+              <div class="checkbox-group">
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm" checked><span class="checkbox-text">Threat model review</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm" checked><span class="checkbox-text">Penetration test</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm"><span class="checkbox-text">Secure code review</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm" checked><span class="checkbox-text">SAST / DAST scan</span></label>
+                <label class="checkbox-label"><input type="checkbox" class="checkbox checkbox-sm"><span class="checkbox-text">Third-party dependency audit</span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="arb-field-row">
+            <div class="textarea-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Data classification, storage &amp; access policies</span>
+                </div>
+              </div>
+              <textarea class="textarea" style="min-height:120px;">Data is classified based on sensitivity levels (e.g., public, internal, confidential) following organizational policies. Storage is secured with encryption at rest, and access is governed by role-based access controls (RBAC) and multi-factor authentication (MFA). Regular audits and monitoring ensure compliance and prevent unauthorized access.</textarea>
+            </div>
+            <div class="textarea-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">How is sensitive data protected?</span>
+                </div>
+              </div>
+              <textarea class="textarea" style="min-height:120px;">Sensitive data, including PII and financial information, is encrypted both at rest and in transit using AES-256 and TLS protocols. Access is restricted through role-based access control (RBAC), multi-factor authentication (MFA), and comprehensive logging with real-time monitoring. Compliance with regulations like GDPR and regular security audits ensure data protection and ongoing risk mitigation.</textarea>
+            </div>
+          </div>
+
+          <div class="arb-field-row">
+            <div class="select-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Data sensitivity level</span>
+                </div>
+              </div>
+              <div class="select" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select__value select__value--selected">Confidential</span>
+                <span data-icon="chevron-down" class="select__chevron"></span>
+                <div class="select__panel" hidden role="listbox">
+                  <div class="select__option" data-value="Public">Public</div>
+                  <div class="select__option" data-value="Internal">Internal</div>
+                  <div class="select__option select__option--selected" data-value="Confidential">Confidential <span data-icon="check"></span></div>
+                  <div class="select__option" data-value="Restricted">Restricted</div>
+                </div>
+              </div>
+            </div>
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Compliance standards</span>
+                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="GDPR, SOC 2, PCI-DSS" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture diagram section -->
+          <span class="arb-form__section-title">Architecture diagram</span>
+
+          <div class="arb-field-row">
+            <div class="select-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Diagram file type</span>
+                </div>
+              </div>
+              <div class="select" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select__value select__value--selected">Solution architecture</span>
+                <span data-icon="chevron-down" class="select__chevron"></span>
+                <div class="select__panel" hidden role="listbox">
+                  <div class="select__option select__option--selected" data-value="Solution architecture">Solution architecture <span data-icon="check"></span></div>
+                  <div class="select__option" data-value="System context">System context</div>
+                  <div class="select__option" data-value="Deployment">Deployment</div>
+                  <div class="select__option" data-value="Data flow">Data flow</div>
+                </div>
+              </div>
+            </div>
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Attached diagram</span>
+                </div>
+              </div>
+              <div class="arb-diagram">
+                <div class="arb-diagram__preview">
+                  <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+                    <rect x="4" y="8" width="16" height="12" rx="2" fill="#B5D4F4" stroke="#378ADD" stroke-width="1.5"/>
+                    <rect x="28" y="8" width="16" height="12" rx="2" fill="#C0DD97" stroke="#639922" stroke-width="1.5"/>
+                    <rect x="16" y="28" width="16" height="12" rx="2" fill="#F5C4B3" stroke="#D85A30" stroke-width="1.5"/>
+                    <path d="M12 20V24H24V28" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M36 20V24H24V28" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="arb-diagram__info">
+                  <div class="arb-diagram__name">architecture-diagram.png</div>
+                  <div class="arb-diagram__meta">Apr 16, 2026 &bull; 1.2 MB</div>
+                </div>
+              </div>
+              <a href="#" class="arb-info-link"><span data-icon="circle-info"></span> View architecture guidelines</a>
+            </div>
+          </div>
+
+          <!-- Technology selection section -->
+          <span class="arb-form__section-title">Technology selection</span>
+
+          <div class="input-fieldset">
+            <div class="field-legend">
+              <div class="field-legend__title">
+                <span class="field-legend__label">TRM products</span>              </div>
+            </div>
+            <div class="input-field">
+              <input type="text" class="input-field__input" value="Apache Kafka, PostgreSQL, Redis, React, API Gateway" readonly>
+            </div>
+            <a href="#" class="arb-info-link"><span data-icon="circle-info"></span> View TRM catalog &amp; standards</a>
+          </div>
+
+          <div class="arb-field-row">
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Deployment model</span>                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="Cloud (AWS)" readonly>
+              </div>
+            </div>
+            <div class="select-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Target go-live</span>
+                </div>
+              </div>
+              <div class="select" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select__value select__value--selected">Q3 2026</span>
+                <span data-icon="chevron-down" class="select__chevron"></span>
+                <div class="select__panel" hidden role="listbox">
+                  <div class="select__search-wrap">
+                    <span data-icon="search"></span>
+                    <input class="select__search" type="text" placeholder="Search quarters&hellip;" autocomplete="off">
+                  </div>
+                  <div class="select__option" data-value="q2-2026">Q2 2026</div>
+                  <div class="select__option select__option--selected" data-value="q3-2026">Q3 2026 <span data-icon="check"></span></div>
+                  <div class="select__option" data-value="q4-2026">Q4 2026</div>
+                  <div class="select__option" data-value="q1-2027">Q1 2027</div>
+                  <div class="select__option" data-value="q2-2027">Q2 2027</div>
+                  <div class="select__option" data-value="q3-2027">Q3 2027</div>
+                  <div class="select__option" data-value="q4-2027">Q4 2027</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance & Scale section -->
+          <span class="arb-form__section-title">Performance &amp; scale</span>
+
+          <div class="arb-field-row">
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Expected peak throughput</span>
+                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="10,000 orders/sec" readonly>
+              </div>
+            </div>
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Expected concurrent users</span>
+                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="~5,000 DAU" readonly>
+              </div>
+            </div>
+          </div>
+
+          <div class="arb-field-row">
+            <div class="select-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Availability SLA</span>
+                </div>
+              </div>
+              <div class="select" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select__value select__value--selected">99.95%</span>
+                <span data-icon="chevron-down" class="select__chevron"></span>
+                <div class="select__panel" hidden role="listbox">
+                  <div class="select__option" data-value="99.9">99.9%</div>
+                  <div class="select__option select__option--selected" data-value="99.95">99.95% <span data-icon="check"></span></div>
+                  <div class="select__option" data-value="99.99">99.99%</div>
+                </div>
+              </div>
+            </div>
+            <div class="select-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Primary region</span>
+                </div>
+              </div>
+              <div class="select" tabindex="0" role="combobox" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select__value select__value--selected">us-east-1</span>
+                <span data-icon="chevron-down" class="select__chevron"></span>
+                <div class="select__panel" hidden role="listbox">
+                  <div class="select__option select__option--selected" data-value="us-east-1">us-east-1 <span data-icon="check"></span></div>
+                  <div class="select__option" data-value="us-west-2">us-west-2</div>
+                  <div class="select__option" data-value="eu-west-1">eu-west-1</div>
+                  <div class="select__option" data-value="ap-southeast-1">ap-southeast-1</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="arb-field-row">
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Recovery time objective (RTO)</span>
+                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="&lt; 4 hours" readonly>
+              </div>
+            </div>
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Recovery point objective (RPO)</span>
+                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="&lt; 15 minutes" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Operations & Dependencies section -->
+          <span class="arb-form__section-title">Operations &amp; dependencies</span>
+
+          <div class="arb-field-row">
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Estimated annual cost</span>
+                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="$240K" readonly>
+              </div>
+            </div>
+            <div class="input-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Owning team</span>
+                </div>
+              </div>
+              <div class="input-field">
+                <input type="text" class="input-field__input" value="Order Platform — Commerce Engineering" readonly>
+              </div>
+            </div>
+          </div>
+
+          <div class="arb-field-row">
+            <div class="textarea-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Upstream / downstream dependencies</span>
+                </div>
+              </div>
+              <textarea class="textarea" style="min-height:120px;">Upstream: Storefront web/mobile clients, Payments gateway, Inventory service. Downstream: Fulfillment service, Analytics warehouse (read replica), Notification service. All integrations use versioned REST/gRPC contracts with schema registry governance.</textarea>
+            </div>
+            <div class="textarea-fieldset">
+              <div class="field-legend">
+                <div class="field-legend__title">
+                  <span class="field-legend__label">Monitoring &amp; observability plan</span>
+                </div>
+              </div>
+              <textarea class="textarea" style="min-height:120px;">Metrics and traces shipped to Datadog with per-service SLO dashboards. Structured logs aggregated via OpenTelemetry to Splunk. PagerDuty alerts wired to consumer lag, error rate, and p99 latency. Synthetic checks run every 60s against order submission and fulfillment paths.</textarea>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /floating-panel__body -->
+  </div><!-- /floating-panel -->
+
+</div><!-- /app -->
+
+<!-- AI agent evaluation modal -->
+<div class="modal-backdrop" id="evaluation-modal" role="dialog" aria-hidden="true">
+  <div class="modal">
+    <div class="modal__header">
+      <h3 class="modal__title">AI agent evaluation</h3>
+      <button class="modal__close" id="eval-modal-close" aria-label="Close">
+        <span data-icon="close"></span>
+      </button>
+    </div>
+    <div class="modal__body">
+
+      <div class="eval-dims">
+
+        <div class="eval-dim">
+          <span class="eval-dim__status eval-dim__status--pass">
+            <span data-icon="check-circle"></span> Passed
+          </span>
+          <div class="eval-dim__body">
+            <p class="eval-dim__title">Company standards</p>
+            <p class="eval-dim__desc">TRM products and architecture patterns</p>
+          </div>
+        </div>
+
+        <div class="eval-dim">
+          <span class="eval-dim__status eval-dim__status--pass">
+            <span data-icon="check-circle"></span> Passed
+          </span>
+          <div class="eval-dim__body">
+            <p class="eval-dim__title">Precedent requests</p>
+            <p class="eval-dim__desc">AI evaluated 17 prior requests</p>
+          </div>
+        </div>
+
+        <div class="eval-dim">
+          <span class="eval-dim__status eval-dim__status--pass">
+            <span data-icon="check-circle"></span> Passed
+          </span>
+          <div class="eval-dim__body">
+            <p class="eval-dim__title">Legal compliance</p>
+            <p class="eval-dim__desc">GDPR, CPRA, HCCP, PIPEDA</p>
+          </div>
+        </div>
+
+        <div class="eval-dim">
+          <span class="eval-dim__status eval-dim__status--pass">
+            <span data-icon="check-circle"></span> Passed
+          </span>
+          <div class="eval-dim__body">
+            <p class="eval-dim__title">Security and risk</p>
+            <p class="eval-dim__desc">Vulnerability and data classification</p>
+          </div>
+        </div>
+
+        <div class="eval-dim">
+          <span class="eval-dim__status eval-dim__status--fail">
+            <span data-icon="circle-exclamation"></span> Potential gap
+          </span>
+          <div class="eval-dim__body">
+            <p class="eval-dim__title">Cost and operations</p>
+            <p class="eval-dim__desc eval-dim__desc--fail">Business justification is missing cost impact. 83% of requests are rejected due to this gap.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <div class="modal__footer">
+      <button class="modal__btn" id="eval-modal-done">Close</button>
+      <button class="btn btn-primary" id="btn-draft-fix-ai"><span data-icon="ai-sparkle"></span> Draft fix with AI</button>
+    </div>
+  </div>
+</div>
+
+<!-- Submit confirmation modal -->
+<div class="modal-backdrop" id="submit-confirmation-modal" role="dialog" aria-hidden="true">
+  <div class="modal">
+    <div class="modal__header">
+      <h3 class="modal__title">Request submitted</h3>
+      <button class="modal__close" id="submit-confirm-close" aria-label="Close">
+        <span data-icon="close"></span>
+      </button>
+    </div>
+    <div class="modal__body">
+
+      <div class="submit-confirm__hero">
+        <span data-icon="check-circle"></span>
+        <div>
+          <p class="submit-confirm__hero-title">Your ARB request has been submitted for review</p>
+          <p class="submit-confirm__hero-sub">Request ID: <a href="ARB_7_Request%20Details.html">ARB002025318</a></p>
+        </div>
+      </div>
+
+      <div class="submit-confirm__grid">
+        <span class="submit-confirm__label">Project</span>
+        <span class="submit-confirm__value">Real-time Order Processing Pipeline</span>
+
+        <span class="submit-confirm__label">Category</span>
+        <span class="submit-confirm__value">Event-Driven Architecture</span>
+
+        <span class="submit-confirm__label">TRM products</span>
+        <div class="submit-confirm__chips">
+          <span class="badge badge--neutral-tertiary">Apache Kafka</span>
+          <span class="badge badge--neutral-tertiary">PostgreSQL</span>
+          <span class="badge badge--neutral-tertiary">Redis</span>
+          <span class="badge badge--neutral-tertiary">React</span>
+        </div>
+
+        <span class="submit-confirm__label">Est. review</span>
+        <div><span class="badge badge--info-tertiary">3–5 business days</span></div>
+
+        <span class="submit-confirm__label">Predicted</span>
+        <div><span class="badge badge--success-tertiary">Async approval likely</span></div>
+      </div>
+
+      <div class="submit-confirm__divider"></div>
+
+      <p class="submit-confirm__next-title">What happens next</p>
+      <ul class="submit-confirm__next-list">
+        <li>An EA reviewer will be assigned within 1 business day.</li>
+        <li>AI evaluation runs against company standards, precedent requests, and compliance policies.</li>
+        <li>You will be notified at each status change and can track progress from the request details page.</li>
+      </ul>
+
+    </div>
+    <div class="modal__footer">
+      <button class="modal__btn" id="submit-confirm-done">Close</button>
+      <a class="btn btn-primary" href="ARB_7_Request%20Details.html">View request</a>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  Horizon.initIcons();
+
+  const convoPane  = document.getElementById('convo-pane');
+  const convoBody  = document.getElementById('convo-body');
+  const overlay    = document.getElementById('panel-overlay');
+
+  // ── On load: scroll convo to latest, fade out loading overlay ──
+  convoBody.scrollTop = convoBody.scrollHeight;
+
+  // Fade out the loading overlay after the AI loader has shown
+  setTimeout(() => {
+    overlay.classList.add('panel-loading-overlay--hidden');
+    // Remove from DOM after transition
+    setTimeout(() => overlay.remove(), 400);
+  }, 1800);
+
+  // ── Pre-submission review modal ──
+  const btnReview   = document.getElementById('btn-presubmission-review');
+  const evalModal   = document.getElementById('evaluation-modal');
+  const evalClose   = document.getElementById('eval-modal-close');
+  const evalDone    = document.getElementById('eval-modal-done');
+  const convoReview = document.getElementById('convo-step-review');
+
+  Horizon.initIcons(evalModal);
+
+  btnReview.addEventListener('click', () => {
+    Horizon.openModal('evaluation-modal');
+    Horizon.initIcons(evalModal);
+    if (!convoReview.classList.contains('convo-step-group--visible')) {
+      convoReview.classList.add('convo-step-group--visible');
+      Horizon.initIcons(convoReview);
+      setTimeout(() => convoBody.scrollTop = convoBody.scrollHeight, 100);
+    }
+  });
+
+  evalClose.addEventListener('click', () => Horizon.closeModal('evaluation-modal'));
+  evalDone.addEventListener('click',  () => Horizon.closeModal('evaluation-modal'));
+
+  // ── Submit request confirmation modal ──
+  const submitConfirmModal = document.getElementById('submit-confirmation-modal');
+  Horizon.initIcons(submitConfirmModal);
+  document.getElementById('btn-to-step3').addEventListener('click', () => {
+    Horizon.openModal('submit-confirmation-modal');
+    Horizon.initIcons(submitConfirmModal);
+  });
+  document.getElementById('submit-confirm-close').addEventListener('click', () => Horizon.closeModal('submit-confirmation-modal'));
+  document.getElementById('submit-confirm-done').addEventListener('click', () => Horizon.closeModal('submit-confirmation-modal'));
+
+  document.getElementById('btn-draft-fix-ai').addEventListener('click', () => {
+    Horizon.closeModal('evaluation-modal');
+
+    const revisedText = 'Estimated implementation cost is $180K–$240K based on 3 similar event-driven projects approved in the last 12 months (infrastructure, licensing, initial dev). Projected 40% reduction in order-fulfillment delays translates to ~$120K/year in operational savings — payback in ~18 months.';
+
+    const convoBody = document.getElementById('convo-body');
+
+    const userWrap = document.createElement('div');
+    userWrap.className = 'bubble-wrap';
+    userWrap.innerHTML = `<div class="bubble"><p class="bubble__text">Draft fix with AI</p></div>`;
+    convoBody.appendChild(userWrap);
+    convoBody.scrollTop = convoBody.scrollHeight;
+
+    const loadingWrap = document.createElement('div');
+    loadingWrap.className = 'bubble-wrap bubble-wrap--ai';
+    loadingWrap.innerHTML = `<div class="bubble bubble--ai"><span class="typing-dots"><span></span><span></span><span></span></span></div>`;
+    convoBody.appendChild(loadingWrap);
+    convoBody.scrollTop = convoBody.scrollHeight;
+
+    setTimeout(() => {
+      loadingWrap.remove();
+
+      const draftWrap = document.createElement('div');
+      draftWrap.className = 'bubble-wrap bubble-wrap--ai';
+      draftWrap.id = 'draft-fix-wrap';
+      draftWrap.innerHTML = `
+        <div class="bubble bubble--ai">
+          <p class="bubble__text">${revisedText}</p>
+        </div>
+        <div class="arb-suggestion-pills" style="margin-top: var(--space-2);">
+          <button class="arb-suggestion-pill" id="accept-draft-fix">
+            <span data-icon="check"></span> Accept
+          </button>
+        </div>`;
+      convoBody.appendChild(draftWrap);
+      Horizon.initIcons(draftWrap);
+      convoBody.scrollTop = convoBody.scrollHeight;
+
+      document.getElementById('accept-draft-fix').addEventListener('click', () => {
+      document.getElementById('accept-draft-fix').remove();
+
+      const echoWrap = document.createElement('div');
+      echoWrap.className = 'bubble-wrap';
+      echoWrap.innerHTML = `<div class="bubble"><p class="bubble__text">Accept</p></div>`;
+      convoBody.appendChild(echoWrap);
+      convoBody.scrollTop = convoBody.scrollHeight;
+
+      const textareas = document.querySelectorAll('#panel-step2 .arb-form textarea');
+      const justificationTa = textareas[2];
+      if (!justificationTa) return;
+      justificationTa.value = justificationTa.value.trim() + ' ' + revisedText;
+      justificationTa.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      justificationTa.style.transition = 'background-color 0.6s ease';
+      justificationTa.style.backgroundColor = '#e8f5e1';
+      setTimeout(() => { justificationTa.style.backgroundColor = ''; }, 1400);
+      const aiLabel = document.getElementById('ai-fix-label-justification');
+      if (aiLabel) {
+        aiLabel.style.display = '';
+        Horizon.initIcons(aiLabel);
+      }
+      Horizon.toast('Cost impact added to Business justification.', 'success');
+    });
+    }, 1400);
+  });
+});
+</script>
+
+</body>
+</html>

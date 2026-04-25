@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My To-do — EA Workspace</title>
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <script src="../assets/js/icons.js"></script>
+  <script src="../assets/js/sidenav-arb.js"></script>
+  <script src="../assets/js/interactions.js" defer></script>
+  <style>
+
+    /* ============================================================
+       Canvas
+    ============================================================ */
+    html, body {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: #cde5ef;
+    }
+
+    .app {
+      display: flex;
+      align-items: flex-start;
+      width: 100vw;
+      min-width: 1280px;
+      min-height: 100vh;
+      background: #cde5ef;
+    }
+
+    /* ============================================================
+       Side Navigation
+    ============================================================ */
+    .sidenav {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--bg-primary, white);
+      border-right: 1px solid var(--color-neutral-300, #e3e2df);
+      width: 288px;
+      transition: width var(--transition-fast);
+      overflow: hidden;
+    }
+
+    .sidenav--collapsed { width: 52px; }
+
+    .sidenav__top {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sidenav__top::-webkit-scrollbar { display: none; }
+
+    .sidenav__header {
+      display: flex;
+      align-items: center;
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .sidenav__menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      flex-shrink: 0;
+      margin: 6px;
+      transition: background-color var(--transition-fast);
+    }
+    .sidenav__menu-btn:hover { background-color: var(--bg-secondary); }
+    .sidenav__menu-btn [data-icon] { width: 20px; height: 20px; }
+
+    .sidenav__logo {
+      position: absolute;
+      left: 52px;
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 8px 6px;
+      white-space: nowrap;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__logo { opacity: 0; pointer-events: none; }
+
+    .sidenav__logo-text {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .sidenav__nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 6px;
+    }
+
+    .sidenav__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      padding: 0 10px;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      white-space: nowrap;
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+    }
+    .sidenav__item:hover:not(.sidenav__item--active) { background-color: var(--color-neutral-200, #edece9); }
+    .sidenav__item--active { background-color: var(--color-neutral-400, #c2c1be); border-radius: 9999px; }
+    .sidenav__item [data-icon] { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .sidenav__item__label {
+      flex: 1;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__item__label { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__divider {
+      height: 1px;
+      background-color: var(--border-subtle, #e3e2df);
+      margin: 0 6px;
+    }
+
+    .sidenav__group { display: flex; flex-direction: column; }
+    .sidenav__group-chevron {
+      width: 16px; height: 16px; flex-shrink: 0;
+      margin-left: auto;
+      opacity: 0.5;
+    }
+    .sidenav--collapsed .sidenav__group-chevron { display: none; }
+    .sidenav--collapsed .sidenav__subnav { display: none !important; }
+
+    .sidenav__subnav {
+      list-style: none;
+      margin: 0 0 0 26px;
+      padding: 2px 0 2px 20px;
+      border-left: 1px solid var(--border-subtle, #e3e2df);
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sidenav__subnav:not([hidden]) { display: flex; }
+    .sidenav__subnav-item {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      padding: 6px 8px;
+      border-radius: var(--radius-md, 6px);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color var(--transition-fast);
+    }
+    .sidenav__subnav-item:hover { background-color: var(--color-neutral-200, #edece9); }
+
+    .sidenav__bottom {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidenav__profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 56px;
+      padding: 6px 8px;
+    }
+
+    .sidenav__avatar {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+    }
+
+    .sidenav__avatar-img {
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background-color: var(--color-neutral-800, #343331);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+      color: white;
+    }
+
+    .sidenav__avatar-status {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background-color: #52cb3d;
+      border: 1.5px solid white;
+    }
+
+    .sidenav__profile-name {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__profile-name { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__profile-more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-md, 6px);
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background-color var(--transition-fast), opacity var(--transition-fast);
+    }
+    .sidenav__profile-more:hover { background-color: var(--bg-secondary); }
+    .sidenav--collapsed .sidenav__profile-more { opacity: 0; }
+    .sidenav__profile-more [data-icon] { width: 14px; height: 14px; }
+
+    /* Dark modifier */
+    .sidenav--dark {
+      background-color: transparent;
+      border-right-color: transparent;
+    }
+    .sidenav--dark .sidenav__item--active { background-color: rgba(0, 0, 0, 0.1); }
+    .sidenav--dark .sidenav__item { color: var(--text-primary); }
+    .sidenav--dark .sidenav__item--active { color: var(--text-primary); }
+    .sidenav--dark .sidenav__item:hover:not(.sidenav__item--active) { background-color: rgba(0, 0, 0, 0.06); }
+
+    /* ============================================================
+       Floating Content Panel
+    ============================================================ */
+    .app__sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      flex-shrink: 0;
+    }
+
+    .app__panel {
+      flex: 1;
+      min-width: 0;
+      margin: 16px 16px 16px 0;
+      border-radius: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      background: linear-gradient(160deg, rgba(255,255,255,0.82) 0%, rgba(255,255,255,0.65) 100%);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-body {
+      display: flex;
+      flex-direction: column;
+      padding-left: 48px;
+      padding-right: 48px;
+    }
+
+    /* ============================================================
+       To-do Header
+    ============================================================ */
+    .todo-header {
+      padding: var(--space-10) 0 var(--space-6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+
+    .todo-header__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-3xl);
+      font-weight: 400;
+      color: var(--text-primary);
+      margin: 0;
+      letter-spacing: -0.03em;
+      line-height: var(--line-height-tight);
+    }
+
+    .todo-header__actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       Filter popover
+    ============================================================ */
+    .filter-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 200;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-3);
+      min-width: 220px;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .filter-popover.is-open { display: flex; }
+
+    .filter-popover__label {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: var(--space-1) var(--space-2) var(--space-2);
+    }
+
+    .filter-popover__item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2) var(--space-2);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+    .filter-popover__item:hover { background: var(--bg-secondary); }
+
+    .filter-popover__item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .filter-popover__item-label {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-primary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .filter-btn-wrap {
+      position: relative;
+    }
+
+    /* ============================================================
+       Three-column Kanban layout
+    ============================================================ */
+    .todo-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: var(--space-6);
+      padding-bottom: var(--space-8);
+    }
+
+    .todo-column__count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      border-radius: 9999px;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      background: var(--color-neutral-200);
+      color: var(--text-secondary);
+    }
+
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    /* ============================================================
+       To-do Card — exact card--interactive pattern
+    ============================================================ */
+    .todo-card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: var(--space-3);
+      cursor: pointer;
+      transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+    }
+    .todo-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-default);
+    }
+
+    .todo-card__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-1);
+    }
+
+    .todo-card__badges {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    .todo-card__time {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .todo-card__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      margin: 0 0 2px;
+      line-height: var(--line-height-snug);
+    }
+
+    .todo-card__meta {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      margin: 0;
+      flex-wrap: wrap;
+    }
+
+    .todo-card__meta-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 9999px;
+      background-color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    .todo-card__desc {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-tertiary);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--line-height-snug);
+      margin: var(--space-2) 0 0;
+    }
+
+    .todo-card__insight {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--color-success);
+      font-weight: var(--font-weight-normal);
+      line-height: var(--line-height-snug);
+      margin: var(--space-2) 0 0;
+    }
+    .todo-card__insight [data-icon] {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--color-accent);
+    }
+
+
+    /* ============================================================
+       Kanban column header card
+    ============================================================ */
+    .kanban-col-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: 0 var(--space-5);
+      height: 70px;
+      border-radius: var(--radius-xl);
+      margin-bottom: var(--space-4);
+    }
+
+    .kanban-col-header--decide  { background: #f5d9b8; }
+    .kanban-col-header--monitor { background: #ccdaf4; }
+    .kanban-col-header--done    { background: #b8d4b4; }
+
+    .kanban-col-header__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .kanban-col-header__icon [data-icon] { width: 28px; height: 28px; color: var(--text-primary); display: flex; }
+    .kanban-col-header__icon [data-icon] svg { width: 28px; height: 28px; flex-shrink: 0; }
+
+    .kanban-col-header__text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .kanban-col-header__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      margin: 0;
+      line-height: var(--line-height-tight);
+    }
+
+    .kanban-col-header__subtitle {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    /* ============================================================
+       Card task type label (replaces badge pills)
+    ============================================================ */
+    .todo-card__type {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+
+    /* ============================================================
+       Drag and drop
+    ============================================================ */
+    .todo-card[draggable="true"] { cursor: grab; }
+    .todo-card[draggable="true"]:active { cursor: grabbing; }
+    .todo-card--dragging {
+      opacity: 0.4;
+      box-shadow: none;
+    }
+    .todo-list--drag-over {
+      background: rgba(99, 102, 241, 0.06);
+      border-radius: var(--radius-xl);
+      outline: 2px dashed rgba(99, 102, 241, 0.35);
+      outline-offset: 4px;
+    }
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      min-height: 64px;
+      border-radius: var(--radius-xl);
+      transition: background 0.15s, outline 0.15s;
+    }
+
+    /* ============================================================
+       Condition-detail modal
+    ============================================================ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.is-open { display: flex; }
+
+    body.modal-open { overflow: hidden; }
+
+    .modal {
+      background: var(--bg-primary);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-xl);
+      width: 640px;
+      height: 760px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: var(--space-5) var(--space-5) var(--space-3);
+      gap: var(--space-3);
+    }
+
+    .modal__title-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+    .modal__eyebrow {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+    }
+
+    .modal__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      margin: 0;
+      line-height: var(--line-height-tight);
+    }
+
+    .modal__header-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .modal__icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: var(--radius-lg);
+      background: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: background-color var(--transition-fast), color var(--transition-fast);
+    }
+    .modal__icon-btn:hover { background-color: var(--bg-secondary); color: var(--text-primary); }
+    .modal__icon-btn [data-icon] { width: 18px; height: 18px; }
+
+    /* Tab bar inside modal */
+    .modal__tabs {
+      padding: 0 var(--space-5);
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+
+    /* Scroll region that hosts tab panels — tinted so white section-cards read as containers */
+    .modal__tab-panels {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg-secondary);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal__tab-panel { display: none; flex-direction: column; gap: var(--space-4); }
+    .modal__tab-panel--active { display: flex; }
+
+    /* Section card (copied from ARB_7 for reuse within modal) */
+    .section-card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-sm);
+      padding: var(--space-5);
+    }
+
+    .section-card__header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .section-card__header-icon {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      padding: 6px;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .section-card__header-icon svg { width: 100%; height: 100%; }
+    .section-card__header-icon--tinted-green  { background-color: #d1f0df; }
+    .section-card__header-icon--tinted-blue   { background-color: #d6eaf8; }
+
+    .section-card__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: var(--space-1) var(--space-4);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+    }
+    .summary-grid__label {
+      color: var(--text-tertiary);
+      font-weight: var(--font-weight-normal);
+      padding: var(--space-1) 0;
+    }
+    .summary-grid__value {
+      color: var(--text-primary);
+      padding: var(--space-1) 0;
+      line-height: var(--line-height-relaxed);
+    }
+    .summary-grid__value--critical {
+      color: var(--color-error);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: var(--font-weight-medium);
+    }
+    .summary-grid__value--critical [data-icon] {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .modal__footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-5) var(--space-5);
+    }
+
+    .modal__btn {
+      height: 36px;
+      padding: 0 16px;
+      border-radius: var(--radius-field);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      border: 1px solid var(--border-default);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color var(--transition-fast);
+    }
+    .modal__btn:hover { background-color: var(--bg-secondary); }
+
+    /* Vertical timeline (from design system — timeline.html) */
+    .timeline-v {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .timeline-v__step {
+      display: flex;
+      gap: var(--space-4);
+      align-items: flex-start;
+    }
+
+    .timeline-v__track {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .tl-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 9999px;
+      background-color: var(--color-neutral-800, #343331);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .tl-mark [data-icon] { width: 14px; height: 14px; color: white; }
+
+    .tl-mark--ai {
+      background-color: #7dcbd2;
+    }
+
+    .tl-connector {
+      width: 2px;
+      height: 28px;
+      background-color: var(--color-neutral-300, #e3e2df);
+      flex-shrink: 0;
+    }
+
+    .timeline-v__content {
+      flex: 1;
+      padding-top: 6px;
+      padding-bottom: var(--space-5);
+    }
+    .timeline-v__step:last-child .timeline-v__content { padding-bottom: 0; }
+
+    .tl-content__label {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      line-height: var(--line-height-snug);
+    }
+
+    .tl-content__sublabel {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    /* Actor chip shown in sublabel */
+    .tl-actor {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-weight: var(--font-weight-medium);
+    }
+    .tl-actor [data-icon] { width: 12px; height: 12px; }
+
+    .tl-actor--ai {
+      background: #e0f2f4;
+      color: var(--color-primary);
+    }
+    .tl-actor--ai [data-icon] { color: var(--color-primary); }
+
+    /* Actions menu popover (same pattern as filter-popover) */
+    .actions-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      z-index: 600;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      padding: var(--space-2);
+      min-width: 220px;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .actions-menu.is-open { display: flex; }
+
+    .actions-menu__item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-lg);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-primary);
+      text-align: left;
+      transition: background-color var(--transition-fast);
+    }
+    .actions-menu__item:hover { background: var(--bg-secondary); }
+    .actions-menu__item [data-icon] {
+      width: 16px;
+      height: 16px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <div class="app__sidebar">
+    <div data-component="ea-sidenav-arb"></div>
+  </div>
+
+  <!-- Floating Content Panel -->
+  <div class="app__panel">
+    <div class="panel-body">
+
+      <!-- Header -->
+      <div class="todo-header">
+        <h1 class="todo-header__title">My to-do</h1>
+        <div class="todo-header__actions">
+          <button class="btn-iconic btn-ghost" aria-label="Search">
+            <span data-icon="search"></span>
+          </button>
+          <div class="filter-btn-wrap">
+            <button class="btn-iconic btn-ghost" id="filter-btn" aria-label="Filter" aria-expanded="false">
+              <span data-icon="filter"></span>
+            </button>
+            <div class="filter-popover" id="filter-popover" role="dialog" aria-label="Filter by task type">
+              <span class="filter-popover__label">Task type</span>
+              <label class="filter-popover__item">
+                <input type="checkbox" checked id="filter-arb">
+                <span class="filter-popover__item-label">ARB request</span>
+              </label>
+              <label class="filter-popover__item">
+                <input type="checkbox" checked id="filter-tech-debt">
+                <span class="filter-popover__item-label">Tech debt</span>
+              </label>
+              <label class="filter-popover__item">
+                <input type="checkbox" checked id="filter-data-cert">
+                <span class="filter-popover__item-label">Data certification</span>
+              </label>
+              <label class="filter-popover__item">
+                <input type="checkbox" checked id="filter-trm">
+                <span class="filter-popover__item-label">TRM product</span>
+              </label>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="add-task-btn">
+            <span class="btn-icon" data-icon="plus"></span>
+            Add task
+          </button>
+        </div>
+      </div>
+
+      <!-- Two-column layout -->
+      <div class="todo-columns">
+
+        <!-- ============================================================
+             Decide column
+        ============================================================ -->
+        <div>
+          <div class="kanban-col-header kanban-col-header--decide">
+            <div class="kanban-col-header__icon"><span data-icon="arrows-decision"></span></div>
+            <div class="kanban-col-header__text">
+              <p class="kanban-col-header__title">Decide</p>
+              <p class="kanban-col-header__subtitle">High priority tasks requiring attention</p>
+            </div>
+            <span class="todo-column__count" id="count-decide" style="margin-left:auto;">8</span>
+          </div>
+          <div class="todo-list" id="col-decide">
+
+            <div class="todo-card" id="todo-arb-indecisive" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">ARB request</span>
+                <span class="todo-card__time">3 days ago</span>
+              </div>
+              <p class="todo-card__title">Kafka event mesh — cross-domain integration</p>
+              <p class="todo-card__meta">
+                Marcus Johnson
+                <span class="todo-card__meta-dot"></span>
+                Platform Eng
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                Overlaps two existing standards — needs your call.
+              </p>
+            </div>
+
+            <div class="todo-card" id="todo-oracle-condition" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">ARB condition</span>
+                <span class="todo-card__time">Expiring in 7 days</span>
+              </div>
+              <p class="todo-card__title">Oracle license deviation - 1 condition expiring soon</p>
+              <p class="todo-card__meta">
+                Tom Bradley
+                <span class="todo-card__meta-dot"></span>
+                Finance
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                Reminder sent to requester 14 days ago. No response yet.
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">ARB condition</span>
+                <span class="todo-card__time">Waiting 12 days</span>
+              </div>
+              <p class="todo-card__title">AWS Lambda approval — conditions</p>
+              <p class="todo-card__meta">
+                Rachel Torres
+                <span class="todo-card__meta-dot"></span>
+                Marketing
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                Conditions require security review. Follow-up sent twice.
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Tech debt</span>
+                <span class="todo-card__time">5 days ago</span>
+              </div>
+              <p class="todo-card__title">Oracle Forms 12c — keep vs. migrate</p>
+              <p class="todo-card__meta">
+                Elena Petrova
+                <span class="todo-card__meta-dot"></span>
+                Finance
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                Usage declining 22% YoY despite extended support offer.
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Tech debt</span>
+                <span class="todo-card__time">4 days ago</span>
+              </div>
+              <p class="todo-card__title">TIBCO BW 5.x — migration path ambiguity</p>
+              <p class="todo-card__meta">
+                Carlos Mendez
+                <span class="todo-card__meta-dot"></span>
+                Integration
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                3 possible successors — needs your preference.
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Digital integration</span>
+                <span class="todo-card__time">2 days ago</span>
+              </div>
+              <p class="todo-card__title">MuleSoft API Gateway + Stripe</p>
+              <p class="todo-card__meta">
+                Amara Okafor
+                <span class="todo-card__meta-dot"></span>
+                Commerce
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                TRM compliant, no API overlap.
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">TRM product</span>
+                <span class="todo-card__time">1 day ago</span>
+              </div>
+              <p class="todo-card__title">Snowflake Cortex AI — new TRM product</p>
+              <p class="todo-card__meta">
+                David Müller
+                <span class="todo-card__meta-dot"></span>
+                Data Engineering
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                No conflicts — $180K/yr cost flagged.
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Stakeholder review</span>
+                <span class="todo-card__time">Today</span>
+              </div>
+              <p class="todo-card__title">FY27 Digital Commerce roadmap — feedback requested</p>
+              <p class="todo-card__meta">
+                Sophie Laurent
+                <span class="todo-card__meta-dot"></span>
+                Digital Commerce
+              </p>
+              <p class="todo-card__insight">
+                <span data-icon="ai-sparkle"></span>
+                3 architectural dependencies in your portfolio.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ============================================================
+             Monitor column
+        ============================================================ -->
+        <div>
+          <div class="kanban-col-header kanban-col-header--monitor">
+            <div class="kanban-col-header__icon"><span data-icon="binoculars"></span></div>
+            <div class="kanban-col-header__text">
+              <p class="kanban-col-header__title">Monitor</p>
+              <p class="kanban-col-header__subtitle">Tasks completed by AI agents</p>
+            </div>
+            <span class="todo-column__count" id="count-monitor" style="margin-left:auto;">6</span>
+          </div>
+          <div class="todo-list" id="col-monitor">
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">ARB request</span>
+                <span class="todo-card__time">Last 7 days</span>
+              </div>
+              <p class="todo-card__title">7 ARB requests auto-approved</p>
+              <p class="todo-card__meta">
+                Various requesters
+                <span class="todo-card__meta-dot"></span>
+                Multiple BUs
+              </p>
+              <p class="todo-card__desc">TRM compliant, pre-approved patterns. No EA action needed.</p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">ARB request</span>
+                <span class="todo-card__time">Last 7 days</span>
+              </div>
+              <p class="todo-card__title">2 ARB requests auto-rejected</p>
+              <p class="todo-card__meta">
+                Various requesters
+                <span class="todo-card__meta-dot"></span>
+                Multiple BUs
+              </p>
+              <p class="todo-card__desc">Clear policy violations. Requesters notified with guidance.</p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Async vote</span>
+                <span class="todo-card__time">Due in 2 days</span>
+              </div>
+              <p class="todo-card__title">Snowflake expansion — async vote</p>
+              <p class="todo-card__meta">
+                David Müller
+                <span class="todo-card__meta-dot"></span>
+                Data team
+              </p>
+              <p class="todo-card__desc">3/5 votes received. 2 board members haven't voted yet.</p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Risk score</span>
+                <span class="todo-card__time">1 day ago</span>
+              </div>
+              <p class="todo-card__title">Risk score spike: +8 pts on CRM cluster</p>
+              <p class="todo-card__meta">
+                Auto-detected
+                <span class="todo-card__meta-dot"></span>
+                Sales &amp; CRM
+              </p>
+              <p class="todo-card__desc">Root cause: 2 new vulnerabilities in dependency chain.</p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Migration</span>
+                <span class="todo-card__time">Due yesterday</span>
+              </div>
+              <p class="todo-card__title">PartnerAPI v1 integration — 2 weeks overdue</p>
+              <p class="todo-card__meta">
+                James Okonkwo
+                <span class="todo-card__meta-dot"></span>
+                Platform Eng
+              </p>
+              <p class="todo-card__desc">Escalation sent to lead. 3 consumers not yet migrated.</p>
+            </div>
+
+            <div class="todo-card" draggable="true">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Successor assignment</span>
+                <span class="todo-card__time">7 days ago</span>
+              </div>
+              <p class="todo-card__title">3 apps flagged for retirement — no successor</p>
+              <p class="todo-card__meta">
+                Multiple owners
+                <span class="todo-card__meta-dot"></span>
+                Cross-BU
+              </p>
+              <p class="todo-card__desc">Agent drafted recommendations. Awaiting domain owner input.</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ============================================================
+             Done column
+        ============================================================ -->
+        <div>
+          <div class="kanban-col-header kanban-col-header--done">
+            <div class="kanban-col-header__icon"><span data-icon="circle-check"></span></div>
+            <div class="kanban-col-header__text">
+              <p class="kanban-col-header__title">Done</p>
+              <p class="kanban-col-header__subtitle">Completed or dismissed tasks</p>
+            </div>
+            <span class="todo-column__count" id="count-done" style="margin-left:auto;">3</span>
+          </div>
+          <div class="todo-list" id="col-done">
+
+            <div class="todo-card" draggable="true" style="opacity:0.7;">
+              <div class="todo-card__top">
+                <span class="todo-card__type">ARB request</span>
+                <span class="todo-card__time">2 weeks ago</span>
+              </div>
+              <p class="todo-card__title">Azure AD B2C — identity consolidation</p>
+              <p class="todo-card__meta">
+                Priya Nair
+                <span class="todo-card__meta-dot"></span>
+                Security
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true" style="opacity:0.7;">
+              <div class="todo-card__top">
+                <span class="todo-card__type">Tech debt</span>
+                <span class="todo-card__time">3 weeks ago</span>
+              </div>
+              <p class="todo-card__title">Redis Cache — session store migration</p>
+              <p class="todo-card__meta">
+                Kevin Park
+                <span class="todo-card__meta-dot"></span>
+                Platform Eng
+              </p>
+            </div>
+
+            <div class="todo-card" draggable="true" style="opacity:0.7;">
+              <div class="todo-card__top">
+                <span class="todo-card__type">TRM product</span>
+                <span class="todo-card__time">1 month ago</span>
+              </div>
+              <p class="todo-card__title">Datadog APM — observability standard</p>
+              <p class="todo-card__meta">
+                Sarah Kim
+                <span class="todo-card__meta-dot"></span>
+                SRE
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /todo-columns -->
+
+    </div><!-- /panel-body -->
+  </div><!-- /app__panel -->
+
+</div><!-- /app -->
+
+<!-- ============================================================
+     Condition-detail modal
+============================================================ -->
+<div class="modal-backdrop" id="oracle-condition-modal" role="dialog" aria-hidden="true" aria-labelledby="oracle-modal-title">
+  <div class="modal">
+    <div class="modal__header">
+      <div class="modal__title-wrap">
+        <span class="modal__eyebrow">ARB condition · Expiring in 7 days</span>
+        <h3 class="modal__title" id="oracle-modal-title">Oracle license deviation</h3>
+      </div>
+      <div class="modal__header-actions">
+        <button class="btn btn-primary" id="oracle-actions-btn" aria-expanded="false" aria-haspopup="true">
+          Actions
+        </button>
+        <div class="actions-menu" id="oracle-actions-menu" role="menu">
+          <button class="actions-menu__item" role="menuitem" data-action="extend">
+            <span data-icon="calendar-clock"></span>
+            Extend deadline
+          </button>
+          <button class="actions-menu__item" role="menuitem" data-action="escalate">
+            <span data-icon="arrow-up-right"></span>
+            Escalate
+          </button>
+          <button class="actions-menu__item" role="menuitem" data-action="tech-debt">
+            <span data-icon="wrench"></span>
+            Convert to tech debt
+          </button>
+        </div>
+        <button class="modal__icon-btn" id="oracle-modal-close" aria-label="Close">
+          <span data-icon="close"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal__tabs">
+      <div class="tabs">
+        <button class="tab tab--active" data-modal-tab="summary" type="button">Summary</button>
+        <button class="tab" data-modal-tab="history" type="button">History</button>
+      </div>
+    </div>
+
+    <div class="modal__tab-panels">
+
+      <!-- Tab 1: Summary -->
+      <div class="modal__tab-panel modal__tab-panel--active" data-modal-panel="summary">
+
+        <!-- Container 1: ARB Request Summary -->
+        <div class="section-card">
+          <div class="section-card__header">
+            <span data-icon="arena" class="section-card__header-icon section-card__header-icon--tinted-green" style="color:#22c55e;"></span>
+            <p class="section-card__title">ARB Request Summary</p>
+          </div>
+          <div class="summary-grid">
+            <span class="summary-grid__label">Request</span>
+            <span class="summary-grid__value">License deviation for 3 non-compliant Oracle database instances running on extended-support tier.</span>
+
+            <span class="summary-grid__label">Requester</span>
+            <span class="summary-grid__value">Tom Bradley, Finance Systems Lead</span>
+
+            <span class="summary-grid__label">Business unit</span>
+            <span class="summary-grid__value">Finance</span>
+          </div>
+        </div>
+
+        <!-- Container 2: Original decision & condition set -->
+        <div class="section-card">
+          <div class="section-card__header">
+            <span data-icon="clipboard-lines" class="section-card__header-icon section-card__header-icon--tinted-blue" style="color:#3b82f6;"></span>
+            <p class="section-card__title">Original decision &amp; condition set</p>
+          </div>
+          <div class="summary-grid">
+            <span class="summary-grid__label">Decision</span>
+            <span class="summary-grid__value"><strong>Approved with conditions</strong> · Jan 6, 2026 by S. Chen</span>
+
+            <span class="summary-grid__label">Condition</span>
+            <span class="summary-grid__value">Migrate 3 non-compliant Oracle instances to the approved licensing tier before Apr 27, 2026. Deviation expires if not remediated.</span>
+
+            <span class="summary-grid__label">Expiry</span>
+            <span class="summary-grid__value summary-grid__value--critical">
+              <span data-icon="alert-circle"></span>
+              Apr 27, 2026 · 7 days remaining
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: History -->
+      <div class="modal__tab-panel" data-modal-panel="history">
+        <div class="section-card">
+          <div class="timeline-v">
+
+            <div class="timeline-v__step">
+              <div class="timeline-v__track">
+                <div class="tl-mark tl-mark--ai"><span data-icon="ai-sparkle"></span></div>
+                <div class="tl-connector"></div>
+              </div>
+              <div class="timeline-v__content">
+                <div class="tl-content__label">Final reminder sent — no response from requester</div>
+                <div class="tl-content__sublabel">
+                  <span class="tl-actor tl-actor--ai"><span data-icon="ai-sparkle"></span>AI</span>
+                  · Apr 7, 2026 · 14 days ago
+                </div>
+              </div>
+            </div>
+
+            <div class="timeline-v__step">
+              <div class="timeline-v__track">
+                <div class="tl-mark tl-mark--ai"><span data-icon="ai-sparkle"></span></div>
+                <div class="tl-connector"></div>
+              </div>
+              <div class="timeline-v__content">
+                <div class="tl-content__label">Reminder sent — 30 days before expiry</div>
+                <div class="tl-content__sublabel">
+                  <span class="tl-actor tl-actor--ai"><span data-icon="ai-sparkle"></span>AI</span>
+                  · Mar 28, 2026
+                </div>
+              </div>
+            </div>
+
+            <div class="timeline-v__step">
+              <div class="timeline-v__track">
+                <div class="tl-mark tl-mark--ai"><span data-icon="ai-sparkle"></span></div>
+                <div class="tl-connector"></div>
+              </div>
+              <div class="timeline-v__content">
+                <div class="tl-content__label">Reminder sent — 60 days before expiry</div>
+                <div class="tl-content__sublabel">
+                  <span class="tl-actor tl-actor--ai"><span data-icon="ai-sparkle"></span>AI</span>
+                  · Feb 26, 2026
+                </div>
+              </div>
+            </div>
+
+            <div class="timeline-v__step">
+              <div class="timeline-v__track">
+                <div class="tl-mark"><span data-icon="user"></span></div>
+              </div>
+              <div class="timeline-v__content">
+                <div class="tl-content__label">Condition issued to requester</div>
+                <div class="tl-content__sublabel">
+                  <span class="tl-actor"><span data-icon="user"></span>S. Chen</span>
+                  · Jan 6, 2026
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal__footer">
+      <button class="modal__btn" id="oracle-modal-close-footer">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    Horizon.mountComponents();
+    Horizon.initIcons();
+    Horizon.initSidenavGroups();
+
+    // ── Set "My to-do" as active nav item ─────────────────────
+    const sidenav = document.getElementById('sidenav-main');
+    if (sidenav) {
+      sidenav.querySelectorAll('.sidenav__item').forEach(i => i.classList.remove('sidenav__item--active'));
+      const todoBtn = sidenav.querySelector('[title="My to-do"]');
+      if (todoBtn) todoBtn.classList.add('sidenav__item--active');
+
+      sidenav.querySelector('.sidenav__menu-btn').addEventListener('click', () => {
+        sidenav.classList.toggle('sidenav--collapsed');
+      });
+
+      sidenav.querySelectorAll('.sidenav__item').forEach(item => {
+        item.addEventListener('click', () => {
+          sidenav.querySelectorAll('.sidenav__item').forEach(i => i.classList.remove('sidenav__item--active'));
+          item.classList.add('sidenav__item--active');
+          const title = item.getAttribute('title');
+          if (title === 'Home') {
+            window.location.href = 'ARB_5_Home.html';
+          } else if (title === 'Architecture Review Board') {
+            window.location.href = 'ARB_5_ARB%20Home.html';
+          }
+        });
+      });
+    }
+
+    // ── First Decide card → Moment 2 ─────────────────────────
+    const arbCard = document.getElementById('todo-arb-indecisive');
+    if (arbCard) {
+      arbCard.addEventListener('click', () => {
+        window.location.href = 'ARB_7_Request Details.html';
+      });
+    }
+
+    // ── Oracle condition card → condition-detail modal ───────
+    const oracleCard       = document.getElementById('todo-oracle-condition');
+    const oracleModal      = document.getElementById('oracle-condition-modal');
+    const oracleCloseBtn   = document.getElementById('oracle-modal-close');
+    const oracleCloseFoot  = document.getElementById('oracle-modal-close-footer');
+    const oracleActionsBtn = document.getElementById('oracle-actions-btn');
+    const oracleActionsMenu= document.getElementById('oracle-actions-menu');
+
+    function closeOracleActions() {
+      oracleActionsMenu.classList.remove('is-open');
+      oracleActionsBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    if (oracleCard) {
+      oracleCard.addEventListener('click', () => {
+        Horizon.openModal('oracle-condition-modal');
+      });
+    }
+
+    [oracleCloseBtn, oracleCloseFoot].forEach(btn => {
+      btn && btn.addEventListener('click', () => {
+        closeOracleActions();
+        Horizon.closeModal('oracle-condition-modal');
+      });
+    });
+
+    // Close on backdrop click
+    oracleModal.addEventListener('click', e => {
+      if (e.target === oracleModal) {
+        closeOracleActions();
+        Horizon.closeModal('oracle-condition-modal');
+      }
+    });
+
+    // Actions menu toggle
+    oracleActionsBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = oracleActionsMenu.classList.toggle('is-open');
+      oracleActionsBtn.setAttribute('aria-expanded', open);
+    });
+
+    // Close actions menu on outside click (within modal)
+    document.addEventListener('click', e => {
+      if (!oracleActionsMenu.contains(e.target) && e.target !== oracleActionsBtn && !oracleActionsBtn.contains(e.target)) {
+        closeOracleActions();
+      }
+    });
+
+    // Modal tab switching
+    const modalTabs   = oracleModal.querySelectorAll('[data-modal-tab]');
+    const modalPanels = oracleModal.querySelectorAll('[data-modal-panel]');
+    modalTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.modalTab;
+        modalTabs.forEach(t => t.classList.remove('tab--active'));
+        modalPanels.forEach(p => p.classList.remove('modal__tab-panel--active'));
+        tab.classList.add('tab--active');
+        oracleModal.querySelector(`[data-modal-panel="${target}"]`)?.classList.add('modal__tab-panel--active');
+      });
+    });
+
+    // Action items → toast feedback
+    oracleActionsMenu.querySelectorAll('.actions-menu__item').forEach(item => {
+      item.addEventListener('click', e => {
+        e.stopPropagation();
+        const action = item.dataset.action;
+        const messages = {
+          'extend':    'Deadline extension requested',
+          'escalate':  'Condition escalated to ARB chair',
+          'tech-debt': 'Converted to tech debt'
+        };
+        closeOracleActions();
+        Horizon.toast(messages[action] || 'Action taken', 'success');
+      });
+    });
+
+    // ── Filter popover ───────────────────────────────────────
+    const filterBtn = document.getElementById('filter-btn');
+    const filterPopover = document.getElementById('filter-popover');
+
+    filterBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = filterPopover.classList.toggle('is-open');
+      filterBtn.setAttribute('aria-expanded', open);
+    });
+
+    document.addEventListener('click', e => {
+      if (!filterPopover.contains(e.target) && e.target !== filterBtn) {
+        filterPopover.classList.remove('is-open');
+        filterBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    // ── Kanban drag-and-drop ──────────────────────────────────
+    let draggedCard = null;
+
+    function updateCounts() {
+      const cols = { decide: 'count-decide', monitor: 'count-monitor', done: 'count-done' };
+      for (const [colId, countId] of Object.entries(cols)) {
+        const list = document.getElementById('col-' + colId);
+        const count = document.getElementById(countId);
+        if (list && count) count.textContent = list.querySelectorAll('.todo-card').length;
+      }
+    }
+
+    document.querySelectorAll('.todo-card').forEach(card => {
+      card.addEventListener('dragstart', e => {
+        draggedCard = card;
+        card.classList.add('todo-card--dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      card.addEventListener('dragend', () => {
+        if (draggedCard) draggedCard.classList.remove('todo-card--dragging');
+        draggedCard = null;
+        document.querySelectorAll('.todo-list').forEach(l => l.classList.remove('todo-list--drag-over'));
+      });
+    });
+
+    document.querySelectorAll('.todo-list').forEach(list => {
+      list.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        list.classList.add('todo-list--drag-over');
+
+        // Insert placeholder position based on cursor
+        const afterCard = getDragAfterCard(list, e.clientY);
+        if (afterCard) {
+          list.insertBefore(draggedCard, afterCard);
+        } else {
+          list.appendChild(draggedCard);
+        }
+      });
+      list.addEventListener('dragleave', e => {
+        if (!list.contains(e.relatedTarget)) {
+          list.classList.remove('todo-list--drag-over');
+        }
+      });
+      list.addEventListener('drop', e => {
+        e.preventDefault();
+        list.classList.remove('todo-list--drag-over');
+        // Card is already moved by dragover; just sync opacity for Done column
+        if (list.id === 'col-done') {
+          draggedCard && (draggedCard.style.opacity = '0.7');
+        } else {
+          draggedCard && (draggedCard.style.opacity = '');
+        }
+        updateCounts();
+      });
+    });
+
+    function getDragAfterCard(list, y) {
+      const cards = [...list.querySelectorAll('.todo-card:not(.todo-card--dragging)')];
+      return cards.reduce((closest, card) => {
+        const box = card.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+          return { offset, element: card };
+        }
+        return closest;
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+  });
+</script>
+
+</body>
+</html>

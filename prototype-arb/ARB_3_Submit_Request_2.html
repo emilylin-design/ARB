@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Review Analysis — EA Workspace</title>
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/floating-panel.css">
+  <link rel="stylesheet" href="../assets/css/convo-pane.css">
+  <script src="../assets/js/icons.js"></script>
+  <script src="../assets/js/sidenav.js"></script>
+  <script src="../assets/js/interactions.js" defer></script>
+  <style>
+
+    /* ============================================================
+       Canvas
+    ============================================================ */
+    html, body {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: #cde5ef;
+      overflow-x: hidden;
+    }
+
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.10) transparent;
+    }
+    html::-webkit-scrollbar { width: 4px; }
+    html::-webkit-scrollbar-track { background: transparent; }
+    html::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.10); border-radius: 9999px; }
+    html::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+
+    .app {
+      display: flex;
+      align-items: flex-start;
+      width: 100%;
+      min-height: calc(100vh - 40px);
+      min-width: 1280px;
+      background: #cde5ef;
+    }
+
+    /* ============================================================
+       Top Navbar (local component — ARB_2/3/4)
+    ============================================================ */
+    .topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      padding: 0 var(--space-6);
+      background: #BBDAE5;
+    }
+    .topnav__left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .topnav__divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-default);
+      margin: 0 var(--space-1);
+    }
+    .topnav__section-name {
+      font-size: 15px;
+      font-weight: var(--font-weight-normal);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .topnav__right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+    }
+    .topnav__link {
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color var(--transition-fast);
+      white-space: nowrap;
+    }
+    .topnav__link:hover { color: var(--text-primary); }
+    .topnav__back {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color var(--transition-fast);
+    }
+    .topnav__back:hover { color: var(--text-primary); }
+    .topnav__back [data-icon] { width: 14px; height: 14px; }
+
+    .topnav__crumb-sep {
+      display: inline-flex;
+      align-items: center;
+      color: var(--text-secondary);
+    }
+    .topnav__crumb-sep [data-icon],
+    .topnav__crumb-sep {
+      width: 14px;
+      height: 14px;
+    }
+    .topnav__crumb--current {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: var(--font-weight-medium, 500);
+      white-space: nowrap;
+    }
+
+    /* ============================================================
+       Side Navigation
+    ============================================================ */
+    .sidenav {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--bg-primary, white);
+      border-right: 1px solid var(--color-neutral-300, #e3e2df);
+      width: 288px;
+      transition: width var(--transition-fast);
+      overflow: hidden;
+    }
+    .sidenav--collapsed { width: 52px; }
+
+    .sidenav__top {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sidenav__top::-webkit-scrollbar { display: none; }
+
+    .sidenav__header {
+      display: flex;
+      align-items: center;
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .sidenav__menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      flex-shrink: 0;
+      margin: 6px;
+      transition: background-color var(--transition-fast);
+    }
+    .sidenav__menu-btn:hover { background-color: var(--bg-secondary); }
+    .sidenav__menu-btn [data-icon] { width: 20px; height: 20px; }
+
+    .sidenav__logo {
+      position: absolute;
+      left: 52px;
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 8px 6px;
+      white-space: nowrap;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__logo { opacity: 0; pointer-events: none; }
+
+    .sidenav__logo-text {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .sidenav__nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 6px;
+    }
+
+    .sidenav__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      padding: 0 10px;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      white-space: nowrap;
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+    }
+    .sidenav__item:hover:not(.sidenav__item--active) { background-color: var(--color-neutral-200, #edece9); }
+    .sidenav__item--active { background-color: var(--color-neutral-400, #c2c1be); border-radius: 9999px; }
+    .sidenav__item [data-icon] { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .sidenav__item__label {
+      flex: 1;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__item__label { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__divider {
+      height: 1px;
+      background-color: var(--border-subtle, #e3e2df);
+      margin: 0 6px;
+    }
+
+    .sidenav__bottom { display: flex; flex-direction: column; flex-shrink: 0; }
+
+    .sidenav__profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 56px;
+      padding: 6px 8px;
+    }
+
+    .sidenav__avatar { position: relative; width: 32px; height: 32px; flex-shrink: 0; }
+    .sidenav__avatar-img {
+      width: 32px; height: 32px; border-radius: 9999px;
+      background-color: var(--color-neutral-800, #343331);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-sans); font-size: 12px;
+      font-weight: var(--font-weight-semibold); color: white;
+    }
+    .sidenav__avatar-status {
+      position: absolute; bottom: 0; right: 0; width: 8px; height: 8px;
+      border-radius: 9999px; background-color: #52cb3d; border: 1.5px solid white;
+    }
+
+    .sidenav__profile-name {
+      flex: 1; font-family: var(--font-sans); font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary); white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; opacity: 1; transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__profile-name { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__profile-more {
+      display: flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: var(--radius-md, 6px);
+      border: none; background: transparent; color: var(--text-tertiary);
+      cursor: pointer; flex-shrink: 0;
+      transition: background-color var(--transition-fast), opacity var(--transition-fast);
+    }
+    .sidenav__profile-more:hover { background-color: var(--bg-secondary); }
+    .sidenav--collapsed .sidenav__profile-more { opacity: 0; }
+    .sidenav__profile-more [data-icon] { width: 14px; height: 14px; }
+
+    .sidenav--dark { background-color: transparent; border-right-color: transparent; }
+    .sidenav--dark .sidenav__item--active { background-color: rgba(0, 0, 0, 0.1); }
+    .sidenav--dark .sidenav__item { color: var(--text-primary); }
+    .sidenav--dark .sidenav__item:hover:not(.sidenav__item--active) { background-color: rgba(0, 0, 0, 0.06); }
+
+    .app__sidebar { flex-shrink: 0; position: sticky; top: 0; height: 100vh; }
+
+    /* ============================================================
+       Badge
+    ============================================================ */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px;
+      font-family: var(--font-sans); font-weight: var(--font-weight-normal);
+      white-space: nowrap; vertical-align: middle; height: 20px; padding: 0 8px;
+      font-size: 11px; border: 1px solid transparent;
+    }
+    .badge [data-icon] { flex-shrink: 0; width: 9px; height: 9px; }
+    .badge--neutral     { background-color: #343331; color: white; }
+    .badge--success     { background-color: #00834f; color: white; }
+    .badge--warning     { background-color: #8d6e00; color: white; }
+    .badge--info        { background-color: #2a6edc; color: white; }
+    .badge--success-tertiary { background-color: #e8f5e1; color: #00834f; border-color: #b3dfa6; }
+    .badge--warning-tertiary { background-color: #fef3c7; color: #8a5b00; border-color: #f5d97a; }
+    .badge--info-tertiary    { background-color: #d6eaf8; color: #1a5a8a; border-color: #aad2f0; }
+
+    /* ============================================================
+       In-bubble attachment thumbnail (synced from ARB_Submit Request_1)
+    ============================================================ */
+    .arb-chat-card__thumbnail {
+      display: none;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 260px;
+      box-sizing: border-box;
+    }
+    .arb-chat-card__thumbnail--visible { display: flex; }
+    .arb-chat-card__thumb-img {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+    .arb-chat-card__thumb-img svg { width: 100%; height: 100%; }
+    .arb-chat-card__thumb-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+    .arb-chat-card__thumb-name {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+    }
+    .arb-chat-card__thumb-meta {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+    }
+    .arb-chat-card__thumbnail--sm {
+      width: 210px;
+      padding: var(--space-2) var(--space-3);
+    }
+    .arb-chat-card__thumbnail--sm .arb-chat-card__thumb-img {
+      width: 36px;
+      height: 36px;
+    }
+    .arb-chat-card__thumbnail--sm .arb-chat-card__thumb-name {
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-xs);
+    }
+    .arb-chat-card__thumbnail--sm .arb-chat-card__thumb-meta {
+      font-size: 11px;
+    }
+
+    /* ============================================================
+       Landing animation — chat pane squeezes from wide to narrow;
+       floating panel slides in from the right.
+    ============================================================ */
+    .convo-pane {
+      width: calc(100vw - 52px - 32px);
+      display: flex;
+      justify-content: center;
+      transition: width 700ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .convo-pane.convo-pane--open { width: calc(100vw - 52px - 32px); }
+    .convo-pane.convo-pane--settled,
+    .convo-pane.convo-pane--open.convo-pane--settled {
+      width: var(--convo-pane-width);
+    }
+
+    .floating-panel {
+      position: relative;
+      transform: translateX(100vw);
+      opacity: 0;
+      transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 700ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .floating-panel--settled {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    /* Loading overlay (covers floating panel) */
+    .panel-loading-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(6px);
+      border-radius: 24px;
+      transition: opacity 0.4s ease;
+    }
+    .panel-loading-overlay--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .panel-loading-overlay__inner {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-4);
+    }
+
+    .panel-loading-text {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-secondary);
+    }
+
+    /* AI Loader */
+    .ai-loader { position: relative; width: 80px; height: 80px; }
+    .ai-loader__ring { position: absolute; inset: 0; animation: ai-ring-spin 2s linear infinite; }
+    .ai-loader__ring svg { width: 100%; height: 100%; display: block; }
+    .ai-loader__center { position: absolute; inset: 12px; background: transparent; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .ai-loader__sparkles { position: relative; width: 34px; height: 34px; }
+    .ai-loader__sparkle { position: absolute; display: block; }
+    .ai-loader__sparkle svg { width: 100%; height: 100%; display: block; }
+    .ai-loader__sparkle--main { width: 30px; height: 30px; bottom: -2px; left: 50%; transform: translateX(-50%); color: #312e81; animation: sparkle-breathe 2s ease-in-out infinite; --tx: -50%; }
+    .ai-loader__sparkle--tl { width: 11px; height: 11px; top: 1px; left: -1px; color: #3730a3; animation: sparkle-breathe 2s ease-in-out infinite 0.4s; }
+    .ai-loader__sparkle--tr { width: 14px; height: 14px; top: -2px; right: -1px; color: #3730a3; animation: sparkle-breathe 2s ease-in-out infinite 0.8s; }
+    @keyframes ai-ring-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes sparkle-breathe { 0%, 100% { opacity: 0.55; transform: translateX(var(--tx, 0)) scale(0.88); } 50% { opacity: 1; transform: translateX(var(--tx, 0)) scale(1.05); } }
+
+    /* ============================================================
+       Panel Content
+    ============================================================ */
+    .panel-content {
+      padding: var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+      animation: panel-fade-in 300ms ease;
+    }
+
+    @keyframes panel-fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+       Step 2 — ARB Form
+    ============================================================ */
+    .arb-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-5);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+    }
+
+    .arb-form .input-fieldset,
+    .arb-form .textarea-fieldset { width: 100%; }
+
+    /* Lighter form fields to match mockup context */
+    .arb-form .field-legend__label { color: #8a8986; font-weight: 400; }
+    .arb-form .input-field { border-color: #8a8986; }
+    .arb-form .textarea { border-color: #8a8986; }
+    .arb-form .select { border-color: #8a8986; }
+    .arb-form .input-field--error,
+    .arb-form .textarea--error { border-color: var(--color-error); }
+
+    /* Form header */
+    .arb-form__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .arb-form__id {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+    }
+    .arb-form__meta {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+    .arb-form__actions { display: flex; gap: var(--space-2); }
+
+    /* Two-column row */
+    .arb-field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+
+    /* Section subtitle inside cards */
+    .arb-form__section-title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Info link */
+    .arb-info-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--color-link, #378ADD);
+      text-decoration: none;
+      margin-top: var(--space-2);
+    }
+    .arb-info-link:hover { text-decoration: underline; }
+    .arb-info-link [data-icon] { width: 14px; height: 14px; }
+
+    /* Diagram upload row */
+    .arb-diagram {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+    }
+    .arb-diagram__preview {
+      width: 48px;
+      height: 40px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .arb-diagram__info { flex: 1; min-width: 0; }
+    .arb-diagram__name {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .arb-diagram__meta { font-family: var(--font-sans); font-size: 11px; color: var(--text-tertiary); }
+
+    /* Inline checklist */
+    .arb-inline-checklist {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: var(--space-4) var(--space-5);
+    }
+    .arb-inline-checklist__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      margin-bottom: var(--space-3);
+    }
+    .arb-inline-checklist__item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-secondary);
+      padding: var(--space-1) 0;
+    }
+    .arb-check-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      color: white;
+    }
+    .arb-check-dot--green { background: #00834f; }
+    .arb-check-dot--amber { background: #EF9F27; }
+
+    /* ============================================================
+       Step 3 — Checklist
+    ============================================================ */
+    .arb-checklist { display: flex; flex-direction: column; gap: 0; }
+    .arb-checklist__item {
+      display: flex; align-items: flex-start; gap: var(--space-3);
+      padding: var(--space-3) 0; border-bottom: 1px solid var(--border-subtle);
+    }
+    .arb-checklist__item:last-child { border-bottom: none; }
+    .arb-checklist__icon {
+      width: 24px; height: 24px; border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+    }
+    .arb-checklist__icon [data-icon] { width: 14px; height: 14px; }
+    .arb-checklist__icon--complete { background: #e8f5e1; color: #00834f; }
+    .arb-checklist__icon--warning  { background: #fef3c7; color: #8d6e00; }
+    .arb-checklist__icon--ai       { background: #e8f5e1; color: #349b21; }
+    .arb-checklist__content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .arb-checklist__name {
+      font-family: var(--font-sans); font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium); color: var(--text-primary);
+      display: flex; align-items: center; gap: var(--space-2);
+    }
+    .arb-checklist__status { font-family: var(--font-sans); font-size: var(--font-size-xs); color: var(--text-tertiary); line-height: var(--line-height-relaxed); }
+
+    /* ============================================================
+       Step 4 — Summary
+    ============================================================ */
+    .arb-summary {
+      background: var(--bg-primary); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl); padding: var(--space-5);
+      display: flex; flex-direction: column; gap: var(--space-4);
+    }
+    .arb-summary__row { display: flex; align-items: flex-start; gap: var(--space-4); }
+    .arb-summary__label {
+      width: 140px; flex-shrink: 0; font-family: var(--font-sans); font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold); color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.04em; padding-top: 2px;
+    }
+    .arb-summary__value { flex: 1; font-family: var(--font-sans); font-size: var(--font-size-sm); color: var(--text-primary); line-height: var(--line-height-normal); }
+    .arb-summary__tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .arb-summary__tag {
+      display: inline-flex; align-items: center; height: 24px; padding: 0 var(--space-3);
+      background: var(--bg-secondary); border-radius: var(--radius-full);
+      font-family: var(--font-sans); font-size: var(--font-size-xs); color: var(--text-primary);
+    }
+    .arb-summary__divider { border: none; border-top: 1px solid var(--border-subtle); margin: 0; }
+    .arb-progress { width: 100%; height: 6px; background: var(--color-neutral-200); border-radius: 9999px; overflow: hidden; margin-top: var(--space-1); }
+    .arb-progress__fill { height: 100%; background: #00834f; border-radius: 9999px; transition: width 600ms ease; }
+    .arb-summary__actions { display: flex; gap: var(--space-3); padding-top: var(--space-2); }
+
+    /* Suggestion pills */
+    .arb-suggestion-pills { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .arb-suggestion-pill {
+      display: inline-flex; align-items: center; gap: var(--space-2); height: 32px;
+      padding: 0 var(--space-3); background: var(--bg-primary); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-full); font-family: var(--font-sans); font-size: var(--font-size-sm);
+      color: var(--text-secondary); cursor: pointer; transition: border-color var(--transition-fast), color var(--transition-fast);
+    }
+    .arb-suggestion-pill:hover { border-color: var(--border-default); color: var(--text-primary); }
+    .arb-suggestion-pill [data-icon] { width: 14px; height: 14px; color: var(--color-primary); }
+
+    /* Attachment chip */
+    .arb-attachment-chip {
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-1) var(--space-3); background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle); border-radius: var(--radius-full);
+      font-family: var(--font-sans); font-size: var(--font-size-xs); color: var(--text-secondary);
+    }
+    .arb-attachment-chip [data-icon] { width: 12px; height: 12px; }
+
+    /* Convo step groups */
+    .convo-step-group { display: none; flex-direction: column; gap: var(--space-4); }
+    .convo-step-group--visible { display: flex; }
+
+    /* ============================================================
+       Finding details panel
+    ============================================================ */
+    /* Override panel title size + remove divider + add spacing under title */
+    #panel-title { font-size: 24px; font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
+    .floating-panel__header .arb-form__header {
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .floating-panel__header .arb-form__meta { margin-top: 6px; }
+
+    .finding-details {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 0 24px 24px;
+    }
+    .finding-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-4);
+      max-width: 100%;
+    }
+    .finding-card {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      padding: var(--space-5);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      width: 800px;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .finding-side {
+      width: 220px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: var(--space-4);
+      background: var(--bg-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-sizing: border-box;
+    }
+    .finding-side__title {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-tertiary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-1);
+    }
+    .finding-side__link {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-2);
+      padding: var(--space-2) 0;
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--color-link, #378ADD);
+      text-decoration: none;
+      border-top: 1px solid var(--border-subtle);
+      line-height: var(--line-height-snug);
+    }
+    .finding-side__link:first-of-type { border-top: none; }
+    .finding-side__link:hover { text-decoration: underline; }
+    .finding-side__link [data-icon] {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--text-tertiary);
+    }
+    .finding-card__header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+    }
+    .finding-card__dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+    .finding-card__title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+    }
+    .finding-card__kind {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-tertiary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .finding-card__title {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: var(--font-weight-bold);
+      color: var(--text-primary);
+      margin: 0;
+      line-height: var(--line-height-snug);
+    }
+    .finding-card__desc {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin: 0;
+    }
+    .finding-card__desc strong { color: var(--text-primary); }
+    .finding-card__evidence {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: var(--space-3);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      border-left: 3px solid var(--border-default);
+    }
+    .finding-card__evidence--image {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-3);
+      border-left: none;
+    }
+    .finding-card__evidence--image svg {
+      flex-shrink: 0;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+    .finding-card__evidence-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .finding-card__evidence-label {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-tertiary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .finding-card__evidence-quote {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      font-style: italic;
+      line-height: var(--line-height-relaxed);
+    }
+    .finding-card__ask {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--border-subtle);
+    }
+    .finding-card__ask-label {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--text-primary);
+      margin: 0;
+    }
+
+  </style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav__left">
+    <a class="topnav__back" href="ARB_1_Service Catalog.html">Service Catalog</a>
+    <span class="topnav__crumb-sep" data-icon="chevron-right"></span>
+    <span class="topnav__crumb--current">Request Architecture Review</span>
+  </div>
+  <div class="topnav__right">
+    <a class="topnav__link" href="#">My requests</a>
+  </div>
+</nav>
+
+<div class="app">
+
+  <!-- Conversation Pane (starts collapsed, opens on load) -->
+  <aside class="convo-pane" id="convo-pane" aria-label="Conversation">
+    <div class="convo-pane__inner">
+
+      <div class="convo-pane__titlebar">
+        <span class="convo-pane__titlebar-label">Now Assist</span>
+        <div class="convo-pane__titlebar-actions">
+          <button class="convo-pane__titlebar-btn" id="btn-expand-convo" aria-label="Expand">
+            <span data-icon="expand"></span>
+          </button>
+          <button class="convo-pane__titlebar-btn" aria-label="Close">
+            <span data-icon="close"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="convo-pane__body" id="convo-body">
+
+        <span class="convo-sparkle"><span data-icon="ai-sparkle"></span></span>
+        <p class="convo-msg__greeting">Architecture Review Analysis</p>
+
+        <!-- User's original message -->
+        <div class="bubble-wrap">
+          <div class="bubble">
+            <p class="bubble__text">We're building a real-time order processing pipeline. The architecture uses Redis for message queuing, PostgreSQL for the order database, and a React frontend. Orders flow from the web app through an API gateway to the processing service, which writes directly to the database. We also have a direct connection from the analytics dashboard to the production database for reporting.</p>
+            <div class="arb-chat-card__thumbnail arb-chat-card__thumbnail--visible arb-chat-card__thumbnail--sm">
+              <div class="arb-chat-card__thumb-img">
+                <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect width="48" height="48" fill="#f0f4f8"/>
+                  <rect x="16" y="4" width="16" height="8" rx="2" fill="#0e4e69" opacity="0.8"/>
+                  <rect x="4" y="20" width="14" height="8" rx="2" fill="#2a6edc" opacity="0.6"/>
+                  <rect x="30" y="20" width="14" height="8" rx="2" fill="#2a6edc" opacity="0.6"/>
+                  <rect x="10" y="36" width="12" height="8" rx="2" fill="#68e353" opacity="0.5"/>
+                  <rect x="26" y="36" width="12" height="8" rx="2" fill="#68e353" opacity="0.5"/>
+                  <line x1="24" y1="12" x2="11" y2="20" stroke="#8b97a5" stroke-width="1"/>
+                  <line x1="24" y1="12" x2="37" y2="20" stroke="#8b97a5" stroke-width="1"/>
+                  <line x1="11" y1="28" x2="16" y2="36" stroke="#8b97a5" stroke-width="1"/>
+                  <line x1="37" y1="28" x2="32" y2="36" stroke="#8b97a5" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="arb-chat-card__thumb-info">
+                <span class="arb-chat-card__thumb-name">Architecture-diagram.png</span>
+                <span class="arb-chat-card__thumb-meta">PNG &bull; 1.2 MB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Step 2 messages ── -->
+        <div class="convo-step-group convo-step-group--visible" id="convo-step2">
+          <div class="bubble-wrap bubble-wrap--ai">
+            <div class="bubble bubble--ai">
+              <p class="bubble__text">I've analyzed your solution description and architecture diagram. I found a few things that need attention before we proceed.</p>
+            </div>
+          </div>
+
+          <div class="convo-card">
+            <div class="convo-card__header">
+              <span class="convo-card__title">Analysis Summary</span>
+              <span class="badge badge--neutral">3 findings</span>
+            </div>
+            <div class="convo-card__goal">
+              <span class="convo-card__goal-icon"><span data-icon="bullseye-arrow"></span></span>
+              <p class="convo-card__goal-text"><strong>Goal:</strong> Pre-fill your ARB submission and identify standards conflicts before review.</p>
+            </div>
+            <p class="convo-card__activity-label">Findings</p>
+            <div class="convo-card__activity-list">
+              <div class="convo-card__activity-item">
+                <span class="convo-card__dot" style="background:#2a6edc;"></span>
+                <span><strong>TRM Match</strong> &mdash; Redis identified, but your usage pattern matches a message queue, not a cache. Did you mean Kafka or RabbitMQ?</span>
+              </div>
+              <div class="convo-card__activity-item">
+                <span class="convo-card__dot" style="background:#e2161c;"></span>
+                <span><strong>Standards Conflict</strong> &mdash; Direct database connection from analytics bypasses API gateway &mdash; conflicts with Integration Standard #12</span>
+              </div>
+              <div class="convo-card__activity-item">
+                <span class="convo-card__dot" style="background:#8d6e00;"></span>
+                <span><strong>Diagram Flag</strong> &mdash; Architecture diagram shows no authentication layer between frontend and API gateway</span>
+              </div>
+            </div>
+            <div class="convo-card__footer">
+              <button class="convo-card__action-btn" disabled>
+                <span data-icon="magnifying-glass-plus"></span>
+                Reviewing details &rarr;
+              </button>
+            </div>
+          </div>
+
+          <div class="convo-actions">
+            <button class="convo-action-btn" title="Copy"><span data-icon="clipboard"></span></button>
+            <button class="convo-action-btn" title="Helpful"><span data-icon="thumbs-up"></span></button>
+            <button class="convo-action-btn" title="Not helpful"><span data-icon="thumbs-down"></span></button>
+          </div>
+
+          <div class="bubble-wrap">
+            <div class="bubble">
+              <p class="bubble__text">Review details</p>
+            </div>
+          </div>
+
+          <div class="bubble-wrap bubble-wrap--ai">
+            <div class="bubble bubble--ai">
+              <p class="bubble__text">I've opened the finding details on the right. Clarify how you'd like to proceed on each item &mdash; I'll update the submission based on your choices.</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /convo-pane__body -->
+
+      <div class="convo-pane__footer">
+        <div class="convo-input-card">
+          <button class="convo-input-card__add" aria-label="Attach"><span data-icon="plus"></span></button>
+          <input class="convo-input-card__placeholder" type="text" placeholder="Search or ask anything" aria-label="Search or ask anything">
+          <button class="convo-input-card__send" aria-label="Send"><span data-icon="arrow-up"></span></button>
+        </div>
+      </div>
+
+    </div><!-- /convo-pane__inner -->
+  </aside><!-- /convo-pane -->
+
+  <!-- Floating Content Panel -->
+  <div class="floating-panel" id="floating-panel">
+
+    <!-- Loading overlay (visible on load, fades out) -->
+    <div class="panel-loading-overlay" id="panel-overlay">
+      <div class="panel-loading-overlay__inner">
+      <div class="ai-loader">
+        <div class="ai-loader__ring">
+          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="rg-panel" x1="10" y1="10" x2="70" y2="70" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#94afd0"/>
+                <stop offset="40%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#312e81"/>
+              </linearGradient>
+            </defs>
+            <circle cx="40" cy="40" r="34" stroke="url(#rg-panel)" stroke-width="8" stroke-linecap="round" stroke-dasharray="160 54" fill="none"/>
+          </svg>
+        </div>
+        <div class="ai-loader__center">
+          <div class="ai-loader__sparkles">
+            <span class="ai-loader__sparkle ai-loader__sparkle--main" data-icon="ai-sparkle"></span>
+            <span class="ai-loader__sparkle ai-loader__sparkle--tl" data-icon="ai-sparkle"></span>
+            <span class="ai-loader__sparkle ai-loader__sparkle--tr" data-icon="ai-sparkle"></span>
+          </div>
+        </div>
+      </div>
+      <span class="panel-loading-text">Analyzing your submission&hellip;</span>
+      </div>
+    </div>
+
+    <!-- Panel header: finding details context -->
+    <div class="floating-panel__header" style="flex-direction: column; align-items: stretch; gap: var(--space-4); padding: 24px 24px 16px;">
+      <div class="arb-form__header">
+        <div>
+          <div class="arb-form__id" id="panel-title">Clarifications needed</div>
+          <div class="arb-form__meta">3 items need your clarification before we can pre-fill your submission.</div>
+        </div>
+        <div class="arb-form__actions">
+          <button class="btn btn-secondary">Dismiss all</button>
+          <button class="btn btn-primary" id="btn-save-clarifications">Save clarifications</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="floating-panel__body">
+
+      <!-- Finding details panel -->
+      <div class="finding-details">
+
+        <!-- Finding 1: TRM Match -->
+        <div class="finding-row">
+        <section class="finding-card">
+          <header class="finding-card__header">
+            <span class="finding-card__dot" style="background:#2a6edc;"></span>
+            <div class="finding-card__title-wrap">
+              <span class="finding-card__kind">TRM Match</span>
+              <h3 class="finding-card__title">Redis usage looks like a message queue, not a cache</h3>
+            </div>
+            <span class="badge badge--info-tertiary">Recommendation</span>
+          </header>
+          <p class="finding-card__desc">
+            Your description mentions Redis for <strong>message queuing</strong>. The TRM lists Redis as approved for caching only &mdash; queue workloads should use Kafka or RabbitMQ, which are built for durable, ordered messaging.
+          </p>
+          <div class="finding-card__evidence">
+            <span class="finding-card__evidence-label">From your submission</span>
+            <span class="finding-card__evidence-quote">&ldquo;The architecture uses Redis for message queuing&hellip;&rdquo;</span>
+          </div>
+          <div class="finding-card__ask">
+            <p class="finding-card__ask-label">How would you like to proceed?</p>
+            <div class="radio-group radio-group--sm">
+              <label class="radio-label">
+                <input type="radio" name="f1" class="radio radio-sm" checked>
+                <span class="radio-text">Switch to Apache Kafka (recommended &mdash; matches your throughput need)</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f1" class="radio radio-sm">
+                <span class="radio-text">Switch to RabbitMQ</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f1" class="radio radio-sm">
+                <span class="radio-text">Keep Redis &mdash; request a TRM exception</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f1" class="radio radio-sm">
+                <span class="radio-text">Something else &mdash; I'll clarify below</span>
+              </label>
+            </div>
+            <textarea class="textarea" placeholder="Add context for the ARB (optional)" style="min-height:64px;"></textarea>
+          </div>
+        </section>
+        <aside class="finding-side">
+          <div class="finding-side__title">Related</div>
+          <a href="#" class="finding-side__link">TRM — Apache Kafka <span data-icon="arrow-up-right"></span></a>
+          <a href="#" class="finding-side__link">TRM — Redis (cache only) <span data-icon="arrow-up-right"></span></a>
+          <a href="#" class="finding-side__link">Reference: Event-driven messaging <span data-icon="arrow-up-right"></span></a>
+        </aside>
+        </div>
+
+        <!-- Finding 2: Standards Conflict -->
+        <div class="finding-row">
+        <section class="finding-card">
+          <header class="finding-card__header">
+            <span class="finding-card__dot" style="background:#e2161c;"></span>
+            <div class="finding-card__title-wrap">
+              <span class="finding-card__kind">Standards Conflict</span>
+              <h3 class="finding-card__title">Analytics reads bypass the API gateway</h3>
+            </div>
+            <span class="badge badge--warning-tertiary">Standard #12</span>
+          </header>
+          <p class="finding-card__desc">
+            Integration Standard #12 requires external reads to pass through the API gateway for auditability and rate limiting. Your analytics dashboard connects directly to the production database.
+          </p>
+          <div class="finding-card__evidence">
+            <span class="finding-card__evidence-label">From your submission</span>
+            <span class="finding-card__evidence-quote">&ldquo;&hellip;direct connection from the analytics dashboard to the production database for reporting.&rdquo;</span>
+          </div>
+          <div class="finding-card__ask">
+            <p class="finding-card__ask-label">How would you like to proceed?</p>
+            <div class="radio-group radio-group--sm">
+              <label class="radio-label">
+                <input type="radio" name="f2" class="radio radio-sm">
+                <span class="radio-text">Route analytics through the API gateway (compliant)</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f2" class="radio radio-sm" checked>
+                <span class="radio-text">Use a read-replica DB (keeps analytics isolated from production)</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f2" class="radio radio-sm">
+                <span class="radio-text">Request exception &mdash; read-only, internal traffic only</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f2" class="radio radio-sm">
+                <span class="radio-text">Something else &mdash; I'll clarify below</span>
+              </label>
+            </div>
+            <textarea class="textarea" placeholder="Add context for the ARB (optional)" style="min-height:64px;"></textarea>
+          </div>
+        </section>
+        <aside class="finding-side">
+          <div class="finding-side__title">Related</div>
+          <a href="#" class="finding-side__link">Integration Standard #12 <span data-icon="arrow-up-right"></span></a>
+          <a href="#" class="finding-side__link">Reference: API gateway pattern <span data-icon="arrow-up-right"></span></a>
+          <a href="#" class="finding-side__link">Policy: Production data access <span data-icon="arrow-up-right"></span></a>
+        </aside>
+        </div>
+
+        <!-- Finding 3: Diagram Flag -->
+        <div class="finding-row">
+        <section class="finding-card">
+          <header class="finding-card__header">
+            <span class="finding-card__dot" style="background:#8d6e00;"></span>
+            <div class="finding-card__title-wrap">
+              <span class="finding-card__kind">Diagram Flag</span>
+              <h3 class="finding-card__title">No auth layer shown between frontend and API gateway</h3>
+            </div>
+            <span class="badge badge--neutral">Question</span>
+          </header>
+          <p class="finding-card__desc">
+            The uploaded architecture diagram doesn't include an authentication layer between the React frontend and the API gateway. This is usually required for ARB approval &mdash; can you clarify how auth is handled?
+          </p>
+          <div class="finding-card__evidence finding-card__evidence--image">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" width="36" height="36">
+              <rect width="48" height="48" fill="#f0f4f8"/>
+              <rect x="16" y="4" width="16" height="8" rx="2" fill="#0e4e69" opacity="0.8"/>
+              <rect x="4" y="20" width="14" height="8" rx="2" fill="#2a6edc" opacity="0.6"/>
+              <rect x="30" y="20" width="14" height="8" rx="2" fill="#2a6edc" opacity="0.6"/>
+              <rect x="10" y="36" width="12" height="8" rx="2" fill="#68e353" opacity="0.5"/>
+              <rect x="26" y="36" width="12" height="8" rx="2" fill="#68e353" opacity="0.5"/>
+              <line x1="24" y1="12" x2="11" y2="20" stroke="#8b97a5" stroke-width="1"/>
+              <line x1="24" y1="12" x2="37" y2="20" stroke="#8b97a5" stroke-width="1"/>
+              <line x1="11" y1="28" x2="16" y2="36" stroke="#8b97a5" stroke-width="1"/>
+              <line x1="37" y1="28" x2="32" y2="36" stroke="#8b97a5" stroke-width="1"/>
+            </svg>
+            <div class="finding-card__evidence-meta">
+              <span class="finding-card__evidence-label">architecture-diagram.png</span>
+              <span class="finding-card__evidence-quote">No auth node visible between frontend and gateway.</span>
+            </div>
+          </div>
+          <div class="finding-card__ask">
+            <p class="finding-card__ask-label">How is auth handled?</p>
+            <div class="radio-group radio-group--sm">
+              <label class="radio-label">
+                <input type="radio" name="f3" class="radio radio-sm" checked>
+                <span class="radio-text">API gateway handles auth (I'll update the diagram to show it)</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f3" class="radio radio-sm">
+                <span class="radio-text">Separate auth service &mdash; add it to the diagram</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f3" class="radio radio-sm">
+                <span class="radio-text">Not yet designed &mdash; need guidance from security</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="f3" class="radio radio-sm">
+                <span class="radio-text">Something else &mdash; I'll clarify below</span>
+              </label>
+            </div>
+            <textarea class="textarea" placeholder="Add context for the ARB (optional)" style="min-height:64px;"></textarea>
+          </div>
+        </section>
+        <aside class="finding-side">
+          <div class="finding-side__title">Related</div>
+          <a href="#" class="finding-side__link">Reference: Auth at the edge <span data-icon="arrow-up-right"></span></a>
+          <a href="#" class="finding-side__link">Policy: Zero-trust access <span data-icon="arrow-up-right"></span></a>
+          <a href="#" class="finding-side__link">TRM — Identity providers <span data-icon="arrow-up-right"></span></a>
+        </aside>
+        </div>
+
+      </div>
+
+    </div><!-- /floating-panel__body -->
+  </div><!-- /floating-panel -->
+
+</div><!-- /app -->
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  Horizon.initIcons();
+
+  const convoPane = document.getElementById('convo-pane');
+  const convoBody = document.getElementById('convo-body');
+  const overlay   = document.getElementById('panel-overlay');
+  const btnSave   = document.getElementById('btn-save-clarifications');
+
+  // ── Landing: chat pane squeezes left, floating panel slides in from right ──
+  const floatingPanel = document.getElementById('floating-panel');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      convoPane.classList.add('convo-pane--open', 'convo-pane--settled');
+      floatingPanel.classList.add('floating-panel--settled');
+      setTimeout(() => convoBody.scrollTop = convoBody.scrollHeight, 750);
+    });
+  });
+
+  setTimeout(() => {
+    overlay.classList.add('panel-loading-overlay--hidden');
+    setTimeout(() => overlay.remove(), 400);
+  }, 1800);
+
+  btnSave.addEventListener('click', () => {
+    window.location.href = 'ARB_4_Submit%20Request_3.html';
+  });
+
+  const btnExpand = document.getElementById('btn-expand-convo');
+  btnExpand.addEventListener('click', () => {
+    window.location.href = 'ARB_2_Submit%20Request_1.html?state=analyzed';
+  });
+});
+</script>
+
+</body>
+</html>

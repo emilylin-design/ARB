@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Review Board — Horizon</title>
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/components.css">
+  <link rel="stylesheet" href="../assets/css/dataviz.css">
+  <script src="../assets/js/chart.min.js"></script>
+  <script src="../assets/js/icons.js"></script>
+  <script src="../assets/js/sidenav-arb.js"></script>
+  <script src="../assets/js/interactions.js" defer></script>
+  <style>
+    /* Smooth cross-document transition between ARB_5 ↔ ARB_6 (avoids tab-click flash) */
+    @view-transition { navigation: auto; }
+
+    /* ============================================================
+       Canvas — mirrors ARB_5_Home shell
+    ============================================================ */
+    html, body {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: #cde5ef;
+    }
+
+    /* Page scrollbar (browser-level) */
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.10) transparent;
+    }
+    html::-webkit-scrollbar { width: 4px; }
+    html::-webkit-scrollbar-track { background: transparent; }
+    html::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.10); border-radius: 9999px; }
+    html::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+
+    .app {
+      display: flex;
+      align-items: flex-start;
+      width: 100%;
+      min-width: 1280px;
+      min-height: 100vh;
+      background: #cde5ef;
+    }
+
+    /* ============================================================
+       Side Navigation — verbatim from components/side-navigation.html
+       (kept inline so the page works opened directly in a browser)
+    ============================================================ */
+    .sidenav {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--bg-primary, white);
+      border-right: 1px solid var(--color-neutral-300, #e3e2df);
+      width: 288px;
+      transition: width var(--transition-fast);
+      overflow: hidden;
+    }
+    .sidenav--collapsed { width: 52px; }
+
+    .sidenav__top {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .sidenav__top::-webkit-scrollbar { display: none; }
+
+    .sidenav__header {
+      display: flex;
+      align-items: center;
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .sidenav__menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      flex-shrink: 0;
+      margin: 6px;
+      transition: background-color var(--transition-fast);
+    }
+    .sidenav__menu-btn:hover { background-color: var(--bg-secondary); }
+    .sidenav__menu-btn [data-icon] { width: 20px; height: 20px; }
+
+    .sidenav__logo {
+      position: absolute;
+      left: 52px;
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 8px 6px;
+      white-space: nowrap;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__logo { opacity: 0; pointer-events: none; }
+
+    .sidenav__logo-text {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .sidenav__nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px 6px;
+    }
+
+    .sidenav__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      border-radius: var(--radius-lg, 8px);
+      padding: 0 10px;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      white-space: nowrap;
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+    }
+    .sidenav__item:hover:not(.sidenav__item--active) { background-color: var(--color-neutral-200, #edece9); }
+    .sidenav__item--active { background-color: var(--color-neutral-400, #c2c1be); border-radius: 9999px; }
+    .sidenav__item [data-icon] { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .sidenav__item__label {
+      flex: 1;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__item__label { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__divider { height: 1px; background-color: var(--border-subtle, #e3e2df); margin: 0 6px; }
+
+    .sidenav__group { display: flex; flex-direction: column; }
+    .sidenav__group-chevron {
+      width: 16px; height: 16px; flex-shrink: 0;
+      margin-left: auto;
+      opacity: 0.5;
+    }
+    .sidenav--collapsed .sidenav__group-chevron { display: none; }
+    .sidenav--collapsed .sidenav__subnav { display: none !important; }
+
+    .sidenav__subnav {
+      list-style: none;
+      margin: 0 0 0 26px;
+      padding: 2px 0 2px 20px;
+      border-left: 1px solid var(--border-subtle, #e3e2df);
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sidenav__subnav:not([hidden]) { display: flex; }
+    .sidenav__subnav-item {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      padding: 6px 8px;
+      border-radius: var(--radius-md, 6px);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color var(--transition-fast);
+    }
+    .sidenav__subnav-item:hover { background-color: var(--color-neutral-200, #edece9); }
+
+    .sidenav__bottom { display: flex; flex-direction: column; flex-shrink: 0; }
+
+    .sidenav__profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 56px;
+      padding: 6px 8px;
+    }
+
+    .sidenav__avatar { position: relative; width: 32px; height: 32px; flex-shrink: 0; }
+    .sidenav__avatar-img {
+      width: 32px; height: 32px; border-radius: 9999px;
+      background-color: var(--color-neutral-800, #343331);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-sans); font-size: 12px;
+      font-weight: var(--font-weight-semibold); color: white;
+    }
+    .sidenav__avatar-status {
+      position: absolute; bottom: 0; right: 0;
+      width: 8px; height: 8px; border-radius: 9999px;
+      background-color: #52cb3d; border: 1.5px solid white;
+    }
+    .sidenav__profile-name {
+      flex: 1;
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm, 14px);
+      color: var(--text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      opacity: 1;
+      transition: opacity var(--transition-fast);
+    }
+    .sidenav--collapsed .sidenav__profile-name { opacity: 0; width: 0; overflow: hidden; }
+
+    .sidenav__profile-more {
+      display: flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      border-radius: var(--radius-md, 6px);
+      border: none; background: transparent;
+      color: var(--text-tertiary); cursor: pointer; flex-shrink: 0;
+      transition: background-color var(--transition-fast), opacity var(--transition-fast);
+    }
+    .sidenav__profile-more:hover { background-color: var(--bg-secondary); }
+    .sidenav--collapsed .sidenav__profile-more { opacity: 0; }
+    .sidenav__profile-more [data-icon] { width: 14px; height: 14px; }
+
+    /* Dark modifier — matches ARB_5 treatment against teal canvas */
+    .sidenav--dark { background-color: transparent; border-right-color: transparent; }
+    .sidenav--dark .sidenav__item--active { background-color: rgba(0, 0, 0, 0.1); }
+    .sidenav--dark .sidenav__item { color: var(--text-primary); }
+    .sidenav--dark .sidenav__item--active { color: var(--text-primary); }
+    .sidenav--dark .sidenav__item:hover:not(.sidenav__item--active) { background-color: rgba(0, 0, 0, 0.06); }
+
+    .app__sidebar {
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    /* ============================================================
+       Floating Content Panel
+    ============================================================ */
+    .app__panel {
+      flex: 1;
+      min-width: 0;
+      margin: 16px 16px 16px 0;
+      border-radius: 24px;
+      border: 2px solid rgba(255,255,255,0.85);
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 80%, rgba(180,230,175,0.48) 0%, transparent 60%),
+        radial-gradient(ellipse 70% 50% at 80% 20%, rgba(180,230,175,0.38) 0%, transparent 50%),
+        radial-gradient(ellipse 90% 70% at 50% 40%, rgba(170,220,255,0.55) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 70% 60%, rgba(210,200,242,0.28) 0%, transparent 50%),
+        linear-gradient(160deg, #e4f2ff 0%, #ddf0f5 30%, #e4f5e8 60%, #e0ecfa 100%);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================================
+       Page header + tabs
+    ============================================================ */
+    .page-header {
+      padding: var(--space-6) var(--space-8);
+      flex-shrink: 0;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .page-header__title {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .page-header .tabs {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* tabs--boxed-inverted active state (mirrors components/tabs.html:150) */
+    .tabs--boxed-inverted.tabs--boxed .tab--active {
+      background-color: var(--color-neutral-700);
+      color: var(--text-inverted);
+    }
+
+    /* ============================================================
+       Content body — scrollable
+    ============================================================ */
+    .panel-body {
+      min-width: 0;
+      padding: var(--space-6) var(--space-8) var(--space-8);
+    }
+
+    .dash-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      width: 90%;
+      margin: 0 auto;
+    }
+
+    /* hidden attribute must win over display: flex */
+    [hidden] { display: none !important; }
+
+    /* ============================================================
+       Pipeline health summary — AI-generated bullets
+    ============================================================ */
+    .pipeline-health__title [data-icon] {
+      width: 14px;
+      height: 14px;
+      color: var(--color-accent);
+      margin-right: 6px;
+      vertical-align: -2px;
+    }
+    .pipeline-health__list {
+      margin: 0;
+      padding-left: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      font-family: var(--font-sans);
+      font-size: var(--font-size-sm);
+      color: var(--text-primary);
+      line-height: var(--line-height-snug);
+    }
+    .pipeline-health__link {
+      color: var(--color-primary, #0669FF);
+      text-decoration: none;
+    }
+    .pipeline-health__link:hover { text-decoration: underline; }
+
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+
+    /* ============================================================
+       Card styles — reused from components/card.html
+    ============================================================ */
+    .card {
+      background: var(--bg-primary);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .card__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding: var(--space-4) var(--space-4) var(--space-3);
+      flex-shrink: 0;
+    }
+    .card__header-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .card__title {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: var(--font-weight-medium);
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: var(--line-height-tight);
+    }
+    .card__header-action { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; color: var(--text-tertiary); }
+    .card__header-action [data-icon] { width: 16px; height: 16px; cursor: pointer; transition: color var(--transition-fast); }
+    .card__header-action [data-icon]:hover { color: var(--text-primary); }
+    .card__body { padding: 0 var(--space-4) var(--space-4); flex: 1; min-height: 0; }
+
+    /* ============================================================
+       KPI card (row 1)
+    ============================================================ */
+    .kpi-card__body {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2) var(--space-4) var(--space-5);
+    }
+    .kpi-card__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .kpi-card__icon [data-icon] { width: 20px; height: 20px; }
+    .kpi-card__icon--positive {
+      background: color-mix(in srgb, var(--dv-semantic-positive) 18%, white);
+      color: var(--dv-green-6);
+    }
+    .kpi-card__icon--negative {
+      background: color-mix(in srgb, var(--dv-semantic-negative) 18%, white);
+      color: var(--dv-red-6);
+    }
+    .kpi-card__value {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-3xl);
+      font-weight: var(--font-weight-normal);
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    /* ============================================================
+       Metric card with sparkline (row 2 cards 1 + 2)
+    ============================================================ */
+    .metric-card__value {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-4xl);
+      font-weight: var(--font-weight-normal);
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin: var(--space-6) 0 var(--space-2);
+    }
+    .metric-card__trend {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-tertiary);
+      margin: 0 0 var(--space-4);
+    }
+    .metric-card__trend strong {
+      color: var(--dv-trend-positive);
+      font-weight: var(--font-weight-semibold);
+    }
+    .metric-card__chart { position: relative; height: 90px; margin-top: var(--space-5); }
+
+    /* ============================================================
+       Group-by header inside chart cards (row 3)
+    ============================================================ */
+    /* ============================================================
+       Donut chart legend (row 3 card 2)
+    ============================================================ */
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .donut-legend__item { display: flex; align-items: center; gap: var(--space-2); }
+    .donut-legend__swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .donut-legend__text { display: flex; flex-direction: column; }
+    .donut-legend__name {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+    .donut-legend__value {
+      font-family: var(--font-sans);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--text-primary);
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar (injected from sidenav-arb.js) -->
+  <aside class="app__sidebar">
+    <div id="sidenav-host"></div>
+  </aside>
+
+  <!-- Panel -->
+  <main class="app__panel">
+
+    <!-- Header + tabs -->
+    <div class="page-header">
+      <h1 class="page-header__title">Architecture Review Board</h1>
+      <div class="tabs tabs--boxed tabs--boxed-inverted" role="tablist">
+        <button class="tab tab--active" role="tab" data-panel="overview">Overview</button>
+        <button class="tab" role="tab" data-panel="requests">Active requests</button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="panel-body">
+
+      <!-- Overview panel -->
+      <div class="dash-grid" id="panel-overview">
+
+        <!-- Row 0 — AI pipeline health summary -->
+        <div class="card">
+          <div class="card__header">
+            <div class="card__header-text">
+              <p class="card__title pipeline-health__title">
+                <span data-icon="ai-sparkle"></span>Pipeline health summary
+              </p>
+            </div>
+            <div class="card__header-action">
+              <span data-icon="more-vertical"></span>
+            </div>
+          </div>
+          <div class="card__body">
+            <ul class="pipeline-health__list">
+              <li>Average resolution time is healthy and improving — down 13% over the last 30 days.</li>
+              <li>AI agent auto-approval and auto-rejection accuracy is holding strong across recent decisions.</li>
+              <li>Several emerging patterns need formalisation — <a href="ARB_6_Requests.html" class="pipeline-health__link">view in Active requests</a>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Row 1 — KPI cards -->
+        <div class="grid-4">
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text">
+                <p class="card__title">Unassigned requests</p>
+              </div>
+              <div class="card__header-action">
+                <span data-icon="circle-info"></span>
+                <span data-icon="more-vertical"></span>
+              </div>
+            </div>
+            <div class="kpi-card__body">
+              <div class="kpi-card__icon kpi-card__icon--positive"><span data-icon="user"></span></div>
+              <span class="kpi-card__value">42</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text">
+                <p class="card__title">Waiting for ARB meeting</p>
+              </div>
+              <div class="card__header-action">
+                <span data-icon="circle-info"></span>
+                <span data-icon="more-vertical"></span>
+              </div>
+            </div>
+            <div class="kpi-card__body">
+              <div class="kpi-card__icon kpi-card__icon--positive"><span data-icon="briefcase"></span></div>
+              <span class="kpi-card__value">5</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text">
+                <p class="card__title">Aging &gt; 15 days</p>
+              </div>
+              <div class="card__header-action">
+                <span data-icon="circle-info"></span>
+                <span data-icon="more-vertical"></span>
+              </div>
+            </div>
+            <div class="kpi-card__body">
+              <div class="kpi-card__icon kpi-card__icon--negative"><span data-icon="building"></span></div>
+              <span class="kpi-card__value">11</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text">
+                <p class="card__title">Needs attention</p>
+              </div>
+              <div class="card__header-action">
+                <span data-icon="circle-info"></span>
+                <span data-icon="more-vertical"></span>
+              </div>
+            </div>
+            <div class="kpi-card__body">
+              <div class="kpi-card__icon kpi-card__icon--negative"><span data-icon="flag"></span></div>
+              <span class="kpi-card__value">26</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row 2 — trend + horizontal bar -->
+        <div class="grid-3">
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text"><p class="card__title">Open request</p></div>
+              <div class="card__header-action"><span data-icon="more-vertical"></span></div>
+            </div>
+            <div class="card__body">
+              <p class="metric-card__value">137</p>
+              <p class="metric-card__trend"><strong>↓ 28 (13%)</strong> since 30 days ago</p>
+              <div class="metric-card__chart"><canvas id="chart-open-trend"></canvas></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text"><p class="card__title">Average days to close</p></div>
+              <div class="card__header-action"><span data-icon="more-vertical"></span></div>
+            </div>
+            <div class="card__body">
+              <p class="metric-card__value">11 days</p>
+              <p class="metric-card__trend"><strong>↓ 2 (13%)</strong> since 30 days ago</p>
+              <div class="metric-card__chart"><canvas id="chart-days-trend"></canvas></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text"><p class="card__title">ARB requests by architecture domain</p></div>
+              <div class="card__header-action"><span data-icon="more-vertical"></span></div>
+            </div>
+            <div class="card__body" style="padding-top: var(--space-2);">
+              <div style="position: relative; height: 230px;">
+                <canvas id="chart-domain"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row 3 — breakdowns -->
+        <div class="grid-2">
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text"><p class="card__title">ARB requests by business unit</p></div>
+              <div class="card__header-action"><span data-icon="more-vertical"></span></div>
+            </div>
+            <div class="card__body">
+              <div style="position: relative; height: 240px;">
+                <canvas id="chart-business-unit"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card__header">
+              <div class="card__header-text"><p class="card__title">ARB requests by request type</p></div>
+              <div class="card__header-action"><span data-icon="more-vertical"></span></div>
+            </div>
+            <div class="card__body">
+              <div style="display: flex; justify-content: center; align-items: center; gap: var(--space-8);">
+                <div style="position: relative; width: 220px; height: 220px; flex-shrink: 0;">
+                  <canvas id="chart-request-type"></canvas>
+                  <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <span style="font-family: var(--font-sans); font-size: var(--font-size-2xl); font-weight: var(--font-weight-normal); letter-spacing: -0.03em; color: var(--text-primary); line-height: 1;">137</span>
+                  </div>
+                </div>
+                <div class="donut-legend">
+                  <div class="donut-legend__item">
+                    <span class="donut-legend__swatch" style="background: #C0DC4E;"></span>
+                    <div class="donut-legend__text">
+                      <span class="donut-legend__name">New application</span>
+                      <span class="donut-legend__value">42</span>
+                    </div>
+                  </div>
+                  <div class="donut-legend__item">
+                    <span class="donut-legend__swatch" style="background: var(--dv-color-8);"></span>
+                    <div class="donut-legend__text">
+                      <span class="donut-legend__name">New integration</span>
+                      <span class="donut-legend__value">65</span>
+                    </div>
+                  </div>
+                  <div class="donut-legend__item">
+                    <span class="donut-legend__swatch" style="background: #5DC4A9;"></span>
+                    <div class="donut-legend__text">
+                      <span class="donut-legend__name">Framework update</span>
+                      <span class="donut-legend__value">99</span>
+                    </div>
+                  </div>
+                  <div class="donut-legend__item">
+                    <span class="donut-legend__swatch" style="background: #D289C8;"></span>
+                    <div class="donut-legend__text">
+                      <span class="donut-legend__name">Delete entities</span>
+                      <span class="donut-legend__value">70</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+
+    </div>
+
+  </main>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ── Inject sidenav ──────────────────────────────────────────
+  const host = document.getElementById('sidenav-host');
+  host.innerHTML = window.HorizonComponents['ea-sidenav-arb'];
+
+  Horizon.initIcons();
+
+  const sidenav = document.getElementById('sidenav-main');
+
+  // Set active state on Architecture Review Board
+  sidenav.querySelectorAll('.sidenav__item').forEach(i => i.classList.remove('sidenav__item--active'));
+  const arbBtn = sidenav.querySelector('[title="Architecture Review Board"]');
+  if (arbBtn) arbBtn.classList.add('sidenav__item--active');
+
+  // Sidebar toggle
+  sidenav.querySelector('.sidenav__menu-btn').addEventListener('click', () => {
+    sidenav.classList.toggle('sidenav--collapsed');
+  });
+
+  // Nav item click routing
+  sidenav.querySelectorAll('.sidenav__item').forEach(item => {
+    item.addEventListener('click', () => {
+      sidenav.querySelectorAll('.sidenav__item').forEach(i => i.classList.remove('sidenav__item--active'));
+      item.classList.add('sidenav__item--active');
+      const title = item.getAttribute('title');
+      if (title === 'Home') window.location.href = 'ARB_5_Home.html';
+      else if (title === 'My to-do') window.location.href = 'ARB_6_Todo.html';
+      else if (title === 'Architecture Review Board') window.location.href = 'ARB_5_ARB%20Home.html';
+    });
+  });
+
+  // ── Tabs (cross-file navigation) ────────────────────────────
+  // Overview → stays on this page; Requests → ARB_6_Requests.html
+  const tabs = document.querySelectorAll('.tab[data-panel]');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.classList.contains('tab--active')) return;
+      if (tab.dataset.panel === 'requests') {
+        window.location.href = 'ARB_6_Requests.html';
+      }
+    });
+  });
+
+  // ============================================================
+  // Charts
+  // ============================================================
+  const C = {
+    // Overview sparklines — teal accent matches ARB_5_Home
+    lineTeal: '#0d9488',
+    // Categorical data colors sourced from dataviz tokens
+    blue:    getComputedStyle(document.documentElement).getPropertyValue('--dv-color-8').trim() || '#0669FF',
+    lightBlue: getComputedStyle(document.documentElement).getPropertyValue('--dv-color-7').trim() || '#099FDB',
+    green:   getComputedStyle(document.documentElement).getPropertyValue('--dv-color-1').trim() || '#008A01',
+    orange:  getComputedStyle(document.documentElement).getPropertyValue('--dv-color-3').trim() || '#EA7117',
+    pink:    getComputedStyle(document.documentElement).getPropertyValue('--dv-color-4').trim() || '#F03E8B',
+    fuchsia: getComputedStyle(document.documentElement).getPropertyValue('--dv-color-5').trim() || '#EF3EFF',
+    orchid:  getComputedStyle(document.documentElement).getPropertyValue('--dv-color-6').trim() || '#B835E6',
+    purple:  getComputedStyle(document.documentElement).getPropertyValue('--dv-color-9').trim() || '#7857FF',
+    axis:    '#656462',
+    grid:    '#edece9'
+  };
+
+  const AXIS_FONT = { family: "'ServiceNow Sans', -apple-system, sans-serif", size: 11, weight: '300' };
+  Chart.defaults.font.family = "'ServiceNow Sans', -apple-system, sans-serif";
+  Chart.defaults.color = C.axis;
+  Chart.defaults.plugins.tooltip.backgroundColor = '#1E293B';
+  Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
+  Chart.defaults.plugins.tooltip.bodyColor = '#c2c1bf';
+  Chart.defaults.plugins.tooltip.padding = { x: 12, y: 8 };
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+  // ── Sparkline helper ────────────────────────────────────────
+  function sparkline(canvas, labels, data) {
+    const ctx2d = canvas.getContext('2d');
+    const gradient = ctx2d.createLinearGradient(0, 0, 0, canvas.parentElement.offsetHeight || 130);
+    gradient.addColorStop(0, 'rgba(13, 148, 136, 0.22)');
+    gradient.addColorStop(1, 'rgba(13, 148, 136, 0.01)');
+    return new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          borderColor: C.lineTeal,
+          backgroundColor: gradient,
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: C.lineTeal,
+          pointHoverBorderWidth: 2.5,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 8, bottom: 4, left: 2, right: 2 } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { displayColors: false }
+        },
+        scales: {
+          x: { display: false, grid: { display: false } },
+          y: { display: false, grid: { display: false } }
+        },
+        animation: { duration: 900, easing: 'easeOutQuart' }
+      }
+    });
+  }
+
+  // ── Open request trend (row 2 card 1) ───────────────────────
+  sparkline(
+    document.getElementById('chart-open-trend'),
+    ['Day 1','Day 5','Day 10','Day 15','Day 20','Day 25','Day 30'],
+    [165, 158, 170, 152, 145, 140, 137]
+  );
+
+  // ── Avg days to close trend (row 2 card 2) ──────────────────
+  sparkline(
+    document.getElementById('chart-days-trend'),
+    ['Day 1','Day 5','Day 10','Day 15','Day 20','Day 25','Day 30'],
+    [13, 14, 13.5, 12.8, 12, 11.5, 11]
+  );
+
+  // ── Architecture domain horizontal bar (row 2 card 3) ───────
+  new Chart(document.getElementById('chart-domain'), {
+    type: 'bar',
+    data: {
+      labels: [
+        'Cloud & Infrastructure',
+        'Data & Analytics',
+        'Integration',
+        'API & Services',
+        'Security & Identity',
+        'ML & AI'
+      ],
+      datasets: [{
+        data: [32, 18, 27, 14, 22, 9],
+        backgroundColor: '#5DC4A9',
+        borderRadius: 3,
+        borderSkipped: 'left',
+        barThickness: 12
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { displayColors: false, callbacks: { label: (i) => ' ' + i.formattedValue + ' requests' } }
+      },
+      scales: {
+        x: { display: false, grid: { display: false }, beginAtZero: true },
+        y: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: C.axis, font: AXIS_FONT, padding: 6 }
+        }
+      }
+    }
+  });
+
+  // ── Business unit vertical bars (row 3 card 1) ──────────────
+  new Chart(document.getElementById('chart-business-unit'), {
+    type: 'bar',
+    data: {
+      labels: ['Logistics','HCM','Sales','Data mining','CRM','Collaboration','Finance','Marketing','Supply chain'],
+      datasets: [{
+        data: [30, 10, 15, 115, 45, 60, 22, 18, 35],
+        backgroundColor: [C.orchid, C.blue, C.orange, C.green, '#B68E00', '#A08460', C.lightBlue, C.purple, C.pink],
+        borderRadius: 4,
+        borderSkipped: 'bottom',
+        barThickness: 28
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { displayColors: false, callbacks: { label: (i) => ' ' + i.formattedValue + ' requests' } }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: C.axis, font: AXIS_FONT, padding: 6 }
+        },
+        y: {
+          beginAtZero: true,
+          max: 120,
+          grid: { color: C.grid, drawTicks: false },
+          border: { display: false },
+          ticks: { stepSize: 15, color: C.axis, font: AXIS_FONT, padding: 6 }
+        }
+      }
+    }
+  });
+
+  // ── Request type donut (row 3 card 2) ───────────────────────
+  new Chart(document.getElementById('chart-request-type'), {
+    type: 'doughnut',
+    data: {
+      labels: ['New application','New integration','Framework update','Delete entities'],
+      datasets: [{
+        data: [42, 65, 99, 70],
+        backgroundColor: ['#C0DC4E', C.blue, '#5DC4A9', '#D289C8'],
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { displayColors: true, callbacks: { label: (i) => ' ' + i.label + ': ' + i.formattedValue } }
+      },
+      animation: { duration: 900 }
+    }
+  });
+
+});
+</script>
+
+</body>
+</html>
