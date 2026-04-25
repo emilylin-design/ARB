@@ -732,9 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sidenav.querySelectorAll('.sidenav__item').forEach(i => i.classList.remove('sidenav__item--active'));
       item.classList.add('sidenav__item--active');
       const title = item.getAttribute('title');
-      if (title === 'Home') window.location.href = 'ARB_5_Home.html';
-      else if (title === 'My to-do') window.location.href = 'ARB_6_Todo.html';
-      else if (title === 'Architecture Review Board') window.location.href = 'ARB_5_ARB%20Home.html';
+      if (title === 'Architecture Review Board') window.location.href = 'ARB_5_ARB_Home.html';
     });
   });
 

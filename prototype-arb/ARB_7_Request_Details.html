@@ -4770,12 +4770,8 @@
           item.classList.add('sidenav__item--active');
 
           const title = item.getAttribute('title');
-          if (title === 'Home') {
-            window.location.href = 'ARB_5_Home.html';
-          } else if (title === 'My to-do') {
-            window.location.href = 'ARB_6_Todo.html';
-          } else if (title === 'Architecture Review Board') {
-            window.location.href = 'ARB_5_ARB%20Home.html';
+          if (title === 'Architecture Review Board') {
+            window.location.href = 'ARB_5_ARB_Home.html';
           }
         });
       });
@@ -5438,7 +5434,7 @@ This is consistent with Decision #217 (Kafka for Supply Chain Events), which was
 
     submitBtn.addEventListener('click', function() {
       closeModal();
-      window.location.href = 'ARB_8_After Approve.html?approved=1';
+      window.location.href = 'ARB_8_After_Approve.html?approved=1';
     });
 
     function showApprovalToast() {

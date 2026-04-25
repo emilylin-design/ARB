@@ -1714,9 +1714,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sidenav.querySelectorAll('.sidenav__item').forEach(i => i.classList.remove('sidenav__item--active'));
       item.classList.add('sidenav__item--active');
       const title = item.getAttribute('title');
-      if (title === 'Home') window.location.href = 'ARB_5_Home.html';
-      else if (title === 'My to-do') window.location.href = 'ARB_6_Todo.html';
-      else if (title === 'Architecture Review Board') window.location.href = 'ARB_5_ARB%20Home.html';
+      if (title === 'Architecture Review Board') window.location.href = 'ARB_5_ARB_Home.html';
     });
   });
 
@@ -1725,7 +1723,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tab.addEventListener('click', () => {
       if (tab.classList.contains('tab--active')) return;
       if (tab.dataset.panel === 'overview') {
-        window.location.href = 'ARB_5_ARB Home.html';
+        window.location.href = 'ARB_5_ARB_Home.html';
       }
     });
   });
@@ -1748,7 +1746,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (kafkaRow) {
     kafkaRow.addEventListener('click', (e) => {
       if (e.target.closest('.rb-row__overflow')) return;
-      window.location.href = 'ARB_7_Request Details.html';
+      window.location.href = 'ARB_7_Request_Details.html';
     });
   }
 
@@ -1782,7 +1780,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const oracleOpenDetails = document.getElementById('oracle-modal-open-details');
   if (oracleOpenDetails) {
     oracleOpenDetails.addEventListener('click', () => {
-      window.location.href = 'ARB_7_Request Details.html';
+      window.location.href = 'ARB_7_Request_Details.html';
     });
   }
 
